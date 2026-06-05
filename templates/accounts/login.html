@@ -1,0 +1,17 @@
+{% extends "accounts/base.html" %}
+{% block content %}
+<div class="card">
+    <h2>Welcome back</h2>
+    <form method="POST">
+        {% csrf_token %}
+        {% for field in form %}
+            {% if field.errors %}
+                <div class="error">{{ field.errors }}</div>
+            {% endif %}
+            {{ field }}
+        {% endfor %}
+        <button type="submit">Log in</button>
+    </form>
+    <div class="link">No account? <a href="{% url 'signup' %}">Sign up</a></div>
+</div>
+{% endblock %}
