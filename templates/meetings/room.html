@@ -1,42 +1,283 @@
-{% extends "accounts/base.html" %}
+{% extends "meetings/base_room.html" %}
+{% load static %}
 {% block content %}
-<div class="card" style="max-width:700px">
-    <h2>{{ meeting.title }}</h2>
-    <p style="font-size:13px;color:#666;margin-bottom:8px">
-        Room code: <strong style="letter-spacing:2px">{{ room_code }}</strong>
-    </p>
-    <p style="font-size:12px;color:#888;margin-bottom:16px">
-        Share this code with others to let them join
-    </p>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #111; font-family: sans-serif; overflow: hidden; }
+  .room-header { background: #1a1a1a; padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #333; position: fixed; top: 0; left: 0; right: 0; z-index: 10; }
+  .room-title { color: #fff; font-size: 15px; font-weight: 500; }
+  .room-code { color: #888; font-size: 12px; margin-top: 2px; }
+  .video-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 8px; padding: 16px; margin-top: 60px; margin-bottom: 80px; }
+  .video-wrapper { position: relative; background: #1e1e1e; border-radius: 10px; overflow: hidden; aspect-ratio: 16/9; }
+  .video-wrapper video { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .video-label { position: absolute; bottom: 8px; left: 8px; background: rgba(0,0,0,0.6); color: #fff; font-size: 12px; padding: 3px 8px; border-radius: 4px; }
+  .controls { position: fixed; bottom: 0; left: 0; right: 0; background: #1a1a1a; padding: 14px 20px; display: flex; justify-content: center; gap: 12px; border-top: 1px solid #333; z-index: 10; }
+  .ctrl-btn { width: 48px; height: 48px; border-radius: 50%; border: none; cursor: pointer; font-size: 20px; display: flex; align-items: center; justify-content: center; background: #333; color: #fff; transition: background 0.2s; }
+  .ctrl-btn:hover { background: #444; }
+  .ctrl-btn.muted { background: #ef4444; }
+  .ctrl-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .end-btn { background: #ef4444; color: white; border: none; padding: 10px 24px; border-radius: 24px; cursor: pointer; font-size: 14px; font-weight: 500; text-decoration: none; display: flex; align-items: center; }
+  .status-bar { position: fixed; top: 70px; right: 16px; background: rgba(0,0,0,0.7); color: #fff; font-size: 12px; padding: 6px 12px; border-radius: 6px; z-index: 10; transition: opacity 0.5s; }
+</style>
 
-    <div style="background:#f9f9f9;border-radius:8px;padding:12px;margin-bottom:16px">
-        <p style="font-size:13px;font-weight:500;margin-bottom:8px">
-            Participants ({{ participants.count }})
-        </p>
-        {% for p in participants %}
-        <div style="font-size:13px;padding:4px 0;color:#333">
-            👤 {{ p.user.username }}
-            {% if p.user == meeting.host %}<span style="font-size:11px;color:#2563eb">(host)</span>{% endif %}
-        </div>
-        {% endfor %}
-    </div>
-
-    <div style="display:flex;gap:8px;flex-wrap:wrap">
-        {% if is_host %}
-        <a href="{% url 'end_meeting' room_code %}" 
-           style="padding:8px 16px;background:#ef4444;color:white;border-radius:8px;text-decoration:none;font-size:14px">
-            End Meeting
-        </a>
-        {% else %}
-        <a href="{% url 'leave_meeting' room_code %}"
-           style="padding:8px 16px;background:#6b7280;color:white;border-radius:8px;text-decoration:none;font-size:14px">
-            Leave Meeting
-        </a>
-        {% endif %}
-        <a href="{% url 'dashboard' %}"
-           style="padding:8px 16px;border:1px solid #ddd;border-radius:8px;text-decoration:none;font-size:14px;color:#333">
-            Dashboard
-        </a>
-    </div>
+<div class="room-header">
+  <div>
+    <div class="room-title">{{ meeting.title }}</div>
+    <div class="room-code">Room: {{ room_code }}</div>
+  </div>
+  <div style="color:#888;font-size:13px" id="participant-count">1 participant</div>
 </div>
+
+<div class="video-grid" id="video-grid">
+  <div class="video-wrapper" id="local-wrapper">
+    <video id="local-video" autoplay muted playsinline></video>
+    <div class="video-label">You ({{ user.username }})</div>
+  </div>
+</div>
+
+<div class="status-bar" id="status-bar"></div>
+
+<div class="controls">
+  <button class="ctrl-btn" id="mic-btn" title="Mute/Unmute">🎤</button>
+  <button class="ctrl-btn" id="cam-btn" title="Camera on/off">📷</button>
+  <button class="ctrl-btn" id="screen-btn" title="Share screen">🖥️</button>
+  {% if is_host %}
+  <a href="{% url 'end_meeting' room_code %}" class="end-btn">End Meeting</a>
+  {% else %}
+  <a href="{% url 'leave_meeting' room_code %}" class="end-btn" style="background:#6b7280">Leave</a>
+  {% endif %}
+</div>
+
+<script src="{% static 'js/simplepeer.min.js' %}"></script>
+<script>
+  const ROOM_CODE = "{{ room_code }}";
+  const USERNAME = "{{ user.username }}";
+  const WS_URL = `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}/ws/meeting/${ROOM_CODE}/`;
+
+  let localStream = null;
+  let peers = {};
+  let socket = null;
+  let micOn = true;
+  let camOn = true;
+
+  const videoGrid = document.getElementById('video-grid');
+  const statusBar = document.getElementById('status-bar');
+  const participantCount = document.getElementById('participant-count');
+
+  // Hide screen share on mobile
+  const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
+  if (isMobile) {
+    document.getElementById('screen-btn').disabled = true;
+    document.getElementById('screen-btn').title = 'Screen sharing not supported on mobile';
+  }
+
+  function updateCount() {
+    const count = Object.keys(peers).length + 1;
+    participantCount.textContent = `${count} participant${count > 1 ? 's' : ''}`;
+  }
+
+  function setStatus(msg) {
+    statusBar.textContent = msg;
+    statusBar.style.opacity = '1';
+    setTimeout(() => { statusBar.style.opacity = '0'; }, 3000);
+  }
+
+  function addRemoteVideo(channel, username) {
+    if (document.getElementById(`wrapper-${channel}`)) return;
+    const wrapper = document.createElement('div');
+    wrapper.className = 'video-wrapper';
+    wrapper.id = `wrapper-${channel}`;
+    const video = document.createElement('video');
+    video.id = `video-${channel}`;
+    video.autoplay = true;
+    video.playsinline = true;
+    video.setAttribute('playsinline', '');
+    const label = document.createElement('div');
+    label.className = 'video-label';
+    label.textContent = username;
+    wrapper.appendChild(video);
+    wrapper.appendChild(label);
+    videoGrid.appendChild(wrapper);
+  }
+
+  function removeRemoteVideo(channel) {
+    const wrapper = document.getElementById(`wrapper-${channel}`);
+    if (wrapper) wrapper.remove();
+    if (peers[channel]) {
+      try { peers[channel].destroy(); } catch(e) {}
+      delete peers[channel];
+    }
+  }
+
+  function createPeer(channel, initiator) {
+    if (peers[channel]) {
+      try { peers[channel].destroy(); } catch(e) {}
+      delete peers[channel];
+    }
+
+    const peer = new SimplePeer({
+      initiator: initiator,
+      stream: localStream,
+      trickle: true,
+      config: {
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' },
+          { urls: 'stun:stun1.l.google.com:19302' },
+        ]
+      }
+    });
+
+    peer.on('signal', data => {
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({
+          type: 'signal',
+          target: channel,
+          signal: data,
+        }));
+      }
+    });
+
+    peer.on('stream', remoteStream => {
+      console.log('Got remote stream from', channel);
+      const video = document.getElementById(`video-${channel}`);
+      if (video) {
+        video.srcObject = remoteStream;
+        video.play().catch(e => console.log('Play error:', e));
+      }
+    });
+
+    peer.on('connect', () => {
+      console.log('Peer connected:', channel);
+      setStatus('Connected!');
+    });
+
+    peer.on('error', err => {
+      console.log('Peer error:', err.message);
+    });
+
+    peer.on('close', () => {
+      console.log('Peer closed:', channel);
+      removeRemoteVideo(channel);
+      updateCount();
+    });
+
+    peers[channel] = peer;
+    updateCount();
+    return peer;
+  }
+
+  async function init() {
+    try {
+      localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      document.getElementById('local-video').srcObject = localStream;
+      setStatus('Camera ready');
+    } catch (e) {
+      setStatus('Camera/mic access denied');
+      console.error('Media error:', e);
+    }
+
+    socket = new WebSocket(WS_URL);
+
+    socket.onopen = () => {
+      console.log('WebSocket connected');
+      setStatus('Connected to room');
+    };
+
+    socket.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      console.log('Message received:', data.type, data);
+
+      if (data.type === 'existing-members') {
+        data.members.forEach(member => {
+          console.log('Existing member:', member.user, member.channel);
+          addRemoteVideo(member.channel, member.user);
+          createPeer(member.channel, true);
+        });
+      }
+
+      else if (data.type === 'user-joined') {
+        console.log('User joined:', data.user, data.channel);
+        if (data.user !== USERNAME) {
+          addRemoteVideo(data.channel, data.user);
+          createPeer(data.channel, false);
+          setStatus(`${data.user} joined`);
+          updateCount();
+        }
+      }
+
+      else if (data.type === 'user-left') {
+        console.log('User left:', data.user);
+        removeRemoteVideo(data.channel);
+        updateCount();
+        setStatus(`${data.user} left`);
+      }
+
+      else if (data.type === 'signal') {
+        const senderChannel = data.sender_channel;
+        console.log('Signal from:', senderChannel, data.signal?.type);
+        if (!peers[senderChannel]) {
+          addRemoteVideo(senderChannel, data.sender);
+          createPeer(senderChannel, false);
+        }
+        if (peers[senderChannel]) {
+          try {
+            peers[senderChannel].signal(data.signal);
+          } catch(e) {
+            console.log('Signal error:', e.message);
+          }
+        }
+      }
+    };
+
+    socket.onclose = () => {
+      console.log('WebSocket closed');
+      setStatus('Disconnected');
+    };
+
+    socket.onerror = (e) => {
+      console.log('WebSocket error:', e);
+    };
+  }
+
+  document.getElementById('mic-btn').addEventListener('click', () => {
+    if (!localStream) return;
+    micOn = !micOn;
+    localStream.getAudioTracks().forEach(t => t.enabled = micOn);
+    document.getElementById('mic-btn').classList.toggle('muted', !micOn);
+    document.getElementById('mic-btn').textContent = micOn ? '🎤' : '🔇';
+  });
+
+  document.getElementById('cam-btn').addEventListener('click', () => {
+    if (!localStream) return;
+    camOn = !camOn;
+    localStream.getVideoTracks().forEach(t => t.enabled = camOn);
+    document.getElementById('cam-btn').classList.toggle('muted', !camOn);
+    document.getElementById('cam-btn').textContent = camOn ? '📷' : '🚫';
+  });
+
+  document.getElementById('screen-btn').addEventListener('click', async () => {
+    if (isMobile) return;
+    try {
+      const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+      const screenTrack = screenStream.getVideoTracks()[0];
+      Object.values(peers).forEach(peer => {
+        const sender = peer._pc?.getSenders().find(s => s.track?.kind === 'video');
+        if (sender) sender.replaceTrack(screenTrack);
+      });
+      document.getElementById('local-video').srcObject = screenStream;
+      screenTrack.onended = () => {
+        Object.values(peers).forEach(peer => {
+          const sender = peer._pc?.getSenders().find(s => s.track?.kind === 'video');
+          const camTrack = localStream.getVideoTracks()[0];
+          if (sender && camTrack) sender.replaceTrack(camTrack);
+        });
+        document.getElementById('local-video').srcObject = localStream;
+      };
+    } catch(e) {
+      console.error('Screen share error:', e);
+    }
+  });
+
+  init();
+</script>
 {% endblock %}

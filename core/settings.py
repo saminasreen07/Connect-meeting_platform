@@ -22,8 +22,7 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
 
 DEBUG = True
 
-ALLOWED_HOSTS = []
-
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '192.168.1.4', 'maturing-supplier-undertow.ngrok-free.app', 'maturing-supplier-undertow.ngrok-free.dev']
 
 # Application definition
 
@@ -121,19 +120,21 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
 # Static files
 STATICFILES_DIRS = [BASE_DIR / 'static']
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # Channels (WebSocket)
 ASGI_APPLICATION = 'core.asgi.application'
 
 CHANNEL_LAYERS = {
     'default': {
-        'BACKEND': 'channels_redis.core.RedisChannelLayer',
-        'CONFIG': {
-            'hosts': [('127.0.0.1', 6379)],
-        },
+        'BACKEND': 'channels.layers.InMemoryChannelLayer',
     },
 }
 AUTH_USER_MODEL = 'accounts.User'
+CSRF_TRUSTED_ORIGINS = [
+    'https://maturing-supplier-undertow.ngrok-free.dev',
+    'https://maturing-supplier-undertow.ngrok-free.app',
+]
