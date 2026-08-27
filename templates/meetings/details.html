@@ -1,0 +1,1421 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meeting Details — Connect</title>
+    <meta name="description" content="Connect Meeting Details — View transcripts, chat logs, and AI insights.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="{% static 'css/app.css' %}">
+    <style>
+        /* ============================================================
+           CONNECT MEETING DETAILS — STANDALONE DASHBOARD SHELL
+           Reuses app.css design tokens.
+        ============================================================ */
+
+        body { overflow-x: hidden; }
+
+        /* ── SHELL & MAIN CONTAINER ──────────────────────────────── */
+        .db-shell {
+            display: flex;
+            min-height: 100vh;
+            background: var(--bg-app);
+        }
+
+        .db-main {
+            flex: 1;
+            margin-left: 240px;
+            min-width: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: margin-left var(--transition-normal);
+        }
+
+        .db-content {
+            flex: 1;
+            padding: 2.5rem 3rem 4rem;
+            max-width: 1200px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 1.75rem;
+        }
+
+        /* ── SIDEBAR ────────────────────────────────────────────── */
+        .db-sidebar {
+            width: 240px;
+            flex-shrink: 0;
+            background: #fff;
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            top: 0; left: 0; bottom: 0;
+            z-index: 100;
+            overflow-y: auto;
+            transition: transform var(--transition-normal);
+        }
+
+        .db-sidebar-logo {
+            padding: 1.5rem 1.5rem 1.375rem;
+            border-bottom: 1px solid #f1f5f9;
+            flex-shrink: 0;
+        }
+
+        .db-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.625rem;
+            text-decoration: none;
+        }
+
+        .db-brand-icon {
+            width: 34px;
+            height: 34px;
+            background: var(--primary);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            box-shadow: 0 4px 10px rgba(79, 70, 229, 0.25);
+            transition: transform var(--transition-fast);
+        }
+        .db-brand:hover .db-brand-icon {
+            transform: rotate(-5deg) scale(1.05);
+        }
+        .db-brand-icon svg { width: 18px; height: 18px; color: #fff; }
+
+        .db-brand-name {
+            font-size: 1.2rem;
+            font-weight: 700;
+            letter-spacing: -0.025em;
+            color: var(--text-main);
+        }
+
+        .db-nav {
+            flex: 1;
+            padding: 1.5rem 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.75rem;
+        }
+
+        .db-nav-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .db-nav-group-label {
+            font-size: 0.6875rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            padding: 0 0.75rem;
+            margin-bottom: 0.5rem;
+            opacity: 0.85;
+        }
+
+        .db-nav-link {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.65rem 0.75rem;
+            border-radius: 10px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            text-decoration: none;
+            transition: all var(--transition-fast);
+        }
+        .db-nav-link svg {
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
+            transition: color var(--transition-fast);
+        }
+
+        .db-nav-link:hover {
+            background: #f8fafc;
+            color: var(--text-main);
+        }
+        .db-nav-link:hover svg {
+            color: var(--primary);
+        }
+
+        .db-nav-link.active {
+            background: #f5f3ff;
+            color: var(--primary);
+            font-weight: 600;
+        }
+        .db-nav-link.active svg {
+            color: var(--primary);
+        }
+
+        .db-nav-link.placeholder {
+            opacity: 0.5;
+            cursor: default;
+            pointer-events: none;
+        }
+
+        .db-sidebar-bottom {
+            padding: 1rem 1rem 1.25rem;
+            border-top: 1px solid #f1f5f9;
+            flex-shrink: 0;
+            background: #fff;
+        }
+
+        .db-sidebar-user {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.625rem;
+            border-radius: 10px;
+            margin-bottom: 0.5rem;
+            background: #f8fafc;
+            border: 1px solid #f1f5f9;
+        }
+
+        .db-av {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--primary-light);
+            color: var(--primary);
+            font-size: 0.875rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            border: 1.5px solid #fff;
+            box-shadow: 0 2px 6px rgba(79, 70, 229, 0.1);
+        }
+
+        .db-user-name {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-main);
+            display: block;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .db-user-role-lbl {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            display: block;
+        }
+
+        .db-logout-link {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.65rem 0.75rem;
+            border-radius: 10px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            text-decoration: none;
+            transition: all var(--transition-fast);
+        }
+        .db-logout-link svg { width: 18px; height: 18px; transition: transform var(--transition-fast); }
+        .db-logout-link:hover {
+            background: #fef2f2;
+            color: #dc2626;
+        }
+        .db-logout-link:hover svg {
+            transform: translateX(2px);
+        }
+
+        /* ── MOBILE OVERLAY & HEADER ────────────────────────────── */
+        .db-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.3);
+            z-index: 99;
+            backdrop-filter: blur(4px);
+        }
+        .db-overlay.open { display: block; }
+
+        .db-mob-hdr {
+            display: none;
+            position: sticky;
+            top: 0;
+            width: 100%;
+            height: 64px;
+            background: #fff;
+            border-bottom: 1px solid var(--border-color);
+            z-index: 50;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 1.25rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+        }
+
+        .db-hamburger {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: none;
+            border: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--text-main);
+            transition: all var(--transition-fast);
+            flex-shrink: 0;
+        }
+        .db-hamburger:hover {
+            background: #f8fafc;
+            border-color: #cbd5e1;
+        }
+        .db-hamburger svg { width: 20px; height: 20px; }
+
+        .db-mob-av {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--primary-light);
+            color: var(--primary);
+            font-size: 0.875rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            border: 1px solid var(--border-color);
+        }
+
+        /* ── PAGE HEADER ────────────────────────────────────────── */
+        .db-page-hdr {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid #e2e8f0;
+            margin-bottom: 0.5rem;
+            gap: 1.5rem;
+        }
+
+        .db-page-label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--primary);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 0.25rem;
+            display: block;
+        }
+
+        .db-page-title {
+            font-size: 1.875rem;
+            font-weight: 700;
+            color: var(--text-main);
+            letter-spacing: -0.03em;
+            margin: 0 0 0.5rem 0;
+            line-height: 1.2;
+        }
+
+        .db-meta-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        /* Role Badge Styles */
+        .db-role-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.625rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            border-radius: 9999px;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        .db-role-badge-host {
+            background: #eef2ff;
+            color: var(--primary);
+            border: 1px solid rgba(79, 70, 229, 0.15);
+        }
+        .db-role-badge-participant {
+            background: #f8fafc;
+            color: var(--text-muted);
+            border: 1px solid var(--border-color);
+        }
+
+        .db-role-pill {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.625rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            border-radius: 9999px;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        .db-role-active      { background: #d1fae5; color: #065f46; }
+        .db-role-ended       { background: #f1f5f9; color: #6b7280; }
+
+        /* Action Buttons on Header */
+        .db-hdr-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .db-back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 10px;
+            border: 1.5px solid var(--border-color);
+            background: #fff;
+            transition: all var(--transition-fast);
+        }
+        .db-back-link:hover {
+            color: var(--text-main);
+            border-color: #cbd5e1;
+            background: #f8fafc;
+        }
+        .db-back-link svg { width: 16px; height: 16px; }
+
+        .db-report-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-main);
+            border: 1.5px solid var(--border-color);
+            background: #fff;
+            padding: 0.5rem 1rem;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+        .db-report-btn:hover {
+            background: #f8fafc;
+            border-color: #cbd5e1;
+        }
+        .db-report-btn svg { width: 16px; height: 16px; }
+
+        /* ── AI MEETING INSIGHTS GRID ───────────────────────────── */
+        .db-insights-hdr-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.25rem;
+        }
+
+        .db-insights-hdr-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            letter-spacing: -0.025em;
+        }
+        .db-insights-hdr-title svg { width: 20px; height: 20px; color: var(--primary); }
+
+        .db-regenerate-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.375rem;
+            font-size: 0.8125rem;
+            font-weight: 600;
+            color: var(--primary);
+            text-decoration: none;
+            padding: 0.45rem 0.875rem;
+            border-radius: 8px;
+            border: 1.5px solid rgba(79, 70, 229, 0.2);
+            background: #fff;
+            transition: all var(--transition-fast);
+        }
+        .db-regenerate-btn:hover {
+            background: var(--primary-light);
+            border-color: var(--primary);
+        }
+        .db-regenerate-btn svg { width: 14px; height: 14px; }
+
+        /* Grid System */
+        .db-insights-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+            width: 100%;
+        }
+
+        .db-insight-card {
+            background: #fff;
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.02);
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .db-insight-card-large { grid-column: span 3; }
+        .db-insight-card-medium { grid-column: span 2; }
+        .db-insight-card-small { grid-column: span 1; }
+
+        .db-insight-card-title-row {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 0.625rem;
+            border-bottom: 1px solid #f1f5f9;
+            padding-bottom: 0.75rem;
+        }
+
+        .db-insight-card-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .db-insight-card-icon svg { width: 16px; height: 16px; }
+
+        .summary-icon { background: #e0f2fe; color: #0284c7; }
+        .discussion-icon { background: #eef2ff; color: var(--primary); }
+        .decisions-icon { background: #d1fae5; color: #059669; }
+        .actions-icon { background: #f5f3ff; color: var(--primary); }
+        .sentiment-icon { background: #fef3c7; color: #d97706; }
+        .engagement-icon { background: #eef2ff; color: var(--primary); }
+
+        .db-insight-card-content {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            line-height: 1.6;
+            flex: 1;
+        }
+
+        /* Bullets list inside card */
+        .db-bullets-list {
+            margin: 0;
+            padding-left: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .db-bullets-list li {
+            color: var(--text-muted);
+        }
+
+        /* Action items table */
+        .db-table-responsive {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        .db-action-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+        .db-action-table th {
+            padding: 0.5rem 0.875rem;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            border-bottom: 1.5px solid var(--border-color);
+        }
+        .db-action-table td {
+            padding: 0.75rem 0.875rem;
+            font-size: 0.875rem;
+            color: var(--text-main);
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .db-action-table tr:last-child td { border-bottom: none; }
+
+        /* Sentiment content centering */
+        .sentiment-center-content {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 80px;
+        }
+
+        .db-sentiment-lg {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.625rem 1.25rem;
+            font-size: 1.125rem;
+            font-weight: 700;
+            border-radius: 12px;
+        }
+        .db-sentiment-lg.positive { background: #d1fae5; color: #065f46; }
+        .db-sentiment-lg.negative { background: #fee2e2; color: #991b1b; }
+        .db-sentiment-lg.neutral  { background: #f1f5f9; color: #374151; }
+        .sentiment-emoji { font-size: 1.35rem; }
+
+        /* Engagement progress bars */
+        .db-engagement-item {
+            margin-bottom: 0.875rem;
+        }
+        .db-engagement-item:last-child { margin-bottom: 0; }
+        
+        .db-engagement-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8125rem;
+            font-weight: 600;
+            color: var(--text-main);
+            margin-bottom: 0.375rem;
+        }
+        
+        .db-engagement-bar-bg {
+            background: #f1f5f9;
+            border-radius: 9999px;
+            height: 8px;
+            width: 100%;
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .db-engagement-bar-fill {
+            background: var(--primary);
+            height: 100%;
+            border-radius: 9999px;
+            transition: width 0.5s ease-out;
+        }
+
+        /* ── AI INSIGHTS PENDING STATE ──────────────────────────── */
+        .db-insights-pending {
+            background: #fff;
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 3rem 2rem;
+            text-align: center;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.02);
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .db-insights-pending-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 14px;
+            background: var(--primary-light);
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1.25rem;
+            box-shadow: 0 4px 10px rgba(79, 70, 229, 0.1);
+        }
+        .db-insights-pending-icon svg { width: 26px; height: 26px; }
+
+        .db-insights-pending-title {
+            font-size: 1.125rem;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.025em;
+        }
+
+        .db-insights-pending-desc {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            max-width: 420px;
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+        }
+
+        .db-insights-generate-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            background: var(--primary);
+            color: #fff;
+            border-radius: 10px;
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: all var(--transition-fast);
+            box-shadow: 0 4px 10px rgba(79, 70, 229, 0.15);
+        }
+        .db-insights-generate-btn:hover {
+            background: var(--primary-hover);
+            box-shadow: 0 6px 16px rgba(79, 70, 229, 0.25);
+        }
+
+        /* ── TRANSCRIPT + CHAT LOGS ─────────────────────────────── */
+        .db-logs-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            width: 100%;
+        }
+
+        .db-log-card {
+            background: #fff;
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.02);
+            display: flex;
+            flex-direction: column;
+            height: 480px;
+        }
+
+        .db-log-card-hdr {
+            display: flex;
+            align-items: center;
+            gap: 0.625rem;
+            padding: 1.125rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            background: #fff;
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text-main);
+            letter-spacing: -0.02em;
+        }
+        .db-log-card-hdr svg { width: 18px; height: 18px; color: var(--primary); }
+
+        .db-log-card-body {
+            flex: 1;
+            padding: 1.25rem 1.5rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1.125rem;
+            background: #fafafa;
+        }
+
+        /* Log Entry styling */
+        .db-log-entry {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .db-log-entry-meta {
+            display: flex;
+            align-items: baseline;
+            gap: 0.5rem;
+        }
+
+        .db-log-entry-name {
+            font-size: 0.8125rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .transcript-name { color: #059669; }
+        .chat-name { color: var(--primary); }
+
+        .db-log-entry-time {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .db-log-entry-text {
+            font-size: 0.875rem;
+            color: var(--text-main);
+            line-height: 1.5;
+            background: #fff;
+            padding: 0.625rem 0.875rem;
+            border-radius: 8px 12px 12px 12px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.01);
+            align-self: flex-start;
+            max-width: 90%;
+            word-break: break-word;
+        }
+
+        .db-log-empty {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.875rem;
+        }
+
+        /* ============================================================
+           RESPONSIVE VIEWPORTS
+        ============================================================ */
+
+        /* Laptop ≤ 1024px */
+        @media (max-width: 1024px) {
+            .db-insights-grid { grid-template-columns: repeat(2, 1fr); }
+            .db-insight-card-large { grid-column: span 2; }
+            .db-insight-card-medium { grid-column: span 2; }
+            .db-insight-card-small { grid-column: span 1; }
+        }
+
+        /* Tablet ≤ 900px */
+        @media (max-width: 900px) {
+            .db-content { padding: 2rem 2rem 3rem; }
+        }
+
+        /* Mobile ≤ 768px */
+        @media (max-width: 768px) {
+            .db-sidebar { transform: translateX(-100%); }
+            .db-sidebar.open {
+                transform: translateX(0);
+                box-shadow: 4px 0 30px rgba(15, 23, 42, 0.15);
+            }
+            .db-mob-hdr { display: flex; }
+            .db-main { margin-left: 0; }
+            .db-content { padding: 1.5rem 1.25rem 2.5rem; gap: 1.25rem; }
+            .db-page-hdr { flex-direction: column; align-items: flex-start; gap: 1rem; }
+            .db-hdr-actions { width: 100%; justify-content: space-between; }
+            .db-insights-grid { grid-template-columns: 1fr; }
+            .db-insight-card-large, .db-insight-card-medium, .db-insight-card-small { grid-column: span 1; }
+            .db-logs-layout { grid-template-columns: 1fr; }
+            .db-log-card { height: 400px; }
+        }
+
+        /* Small Mobile ≤ 480px */
+        @media (max-width: 480px) {
+            .db-content { padding: 1.25rem 1rem 2rem; gap: 1rem; }
+            .db-page-title { font-size: 1.5rem; }
+            .db-meta-row { font-size: 0.8rem; }
+            .db-hdr-actions { flex-direction: column; align-items: stretch; gap: 0.5rem; }
+            .db-back-link, .db-report-btn { width: 100%; justify-content: center; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="db-shell">
+
+    <!-- ══════════════════════════════════════════════════════
+         SIDEBAR
+    ══════════════════════════════════════════════════════ -->
+    <aside class="db-sidebar" id="dbSidebar">
+        <!-- Logo -->
+        <div class="db-sidebar-logo">
+            <a href="{% url 'dashboard' %}" class="db-brand">
+                <div class="db-brand-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M15 10l4.553-2.069A1 1 0 0 1 21 8.87v6.26a1 1 0 0 1-1.447.899L15 14"/>
+                        <rect x="2" y="6" width="13" height="12" rx="2"/>
+                    </svg>
+                </div>
+                <span class="db-brand-name">Connect</span>
+            </a>
+        </div>
+
+        <!-- Nav -->
+        <nav class="db-nav">
+            <div class="db-nav-group">
+                <div class="db-nav-group-label">Workspace</div>
+                <a href="{% url 'dashboard' %}" class="db-nav-link">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="7" height="7" rx="1"/>
+                        <rect x="14" y="3" width="7" height="7" rx="1"/>
+                        <rect x="3" y="14" width="7" height="7" rx="1"/>
+                        <rect x="14" y="14" width="7" height="7" rx="1"/>
+                    </svg>
+                    Dashboard
+                </a>
+                <a href="{% url 'meeting_history' %}" class="db-nav-link active">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="4" width="18" height="18" rx="2"/>
+                        <line x1="16" y1="2" x2="16" y2="6"/>
+                        <line x1="8" y1="2" x2="8" y2="6"/>
+                        <line x1="3" y1="10" x2="21" y2="10"/>
+                    </svg>
+                    Meetings
+                </a>
+            </div>
+
+            <div class="db-nav-group">
+                <div class="db-nav-group-label">Account</div>
+                <a href="#" class="db-nav-link placeholder" tabindex="-1" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M20 12h-2M6 12H4M17.66 17.66l-1.41-1.41M6.34 17.66l1.41-1.41M12 20v-2M12 4V2"/>
+                    </svg>
+                    Settings
+                </a>
+                <a href="#" class="db-nav-link placeholder" tabindex="-1" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                        <circle cx="12" cy="7" r="4"/>
+                    </svg>
+                    Profile
+                </a>
+            </div>
+        </nav>
+
+        <!-- User + Logout -->
+        <div class="db-sidebar-bottom">
+            <div class="db-sidebar-user">
+                <div class="db-av">{{ request.user.username|first|upper }}</div>
+                <div style="min-width:0;">
+                    <span class="db-user-name">{{ request.user.username|title }}</span>
+                    <span class="db-user-role-lbl">{{ request.user.role|title }}</span>
+                </div>
+            </div>
+            <a href="{% url 'logout' %}" class="db-logout-link">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                     stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                    <polyline points="16 17 21 12 16 7"/>
+                    <line x1="21" y1="12" x2="9" y2="12"/>
+                </svg>
+                Log out
+            </a>
+        </div>
+    </aside>
+
+    <!-- Mobile drawer overlay -->
+    <div class="db-overlay" id="dbOverlay"></div>
+
+    <!-- ══════════════════════════════════════════════════════
+         MAIN CONTENT
+    ══════════════════════════════════════════════════════ -->
+    <div class="db-main">
+
+        <!-- Mobile sticky header -->
+        <header class="db-mob-hdr">
+            <button class="db-hamburger" id="dbHamburger" aria-label="Open navigation menu" aria-expanded="false">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <line x1="3" y1="6" x2="21" y2="6"/>
+                    <line x1="3" y1="12" x2="21" y2="12"/>
+                    <line x1="3" y1="18" x2="21" y2="18"/>
+                </svg>
+            </button>
+            <a href="{% url 'dashboard' %}" class="db-brand">
+                <div class="db-brand-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M15 10l4.553-2.069A1 1 0 0 1 21 8.87v6.26a1 1 0 0 1-1.447.899L15 14"/>
+                        <rect x="2" y="6" width="13" height="12" rx="2"/>
+                    </svg>
+                </div>
+                <span class="db-brand-name">Connect</span>
+            </a>
+            <div class="db-mob-av" aria-hidden="true">{{ request.user.username|first|upper }}</div>
+        </header>
+
+        <!-- Scrollable content -->
+        <div class="db-content">
+
+            <!-- ── PAGE HEADER ────────────────────────────────── -->
+            <div class="db-page-hdr">
+                <div style="min-width:0;">
+                    <span class="db-page-label">Meeting Details</span>
+                    <h1 class="db-page-title">{{ meeting.title }}</h1>
+                    <div class="db-meta-row">
+                        <span>{{ meeting.created_at|date:"M d, Y" }}</span>
+                        <span>•</span>
+                        <span>{{ meeting.created_at|time:"h:i A" }}</span>
+                        <span>•</span>
+                        <span style="font-family: monospace;">Room: {{ meeting.room_code }}</span>
+                        <span>•</span>
+                        {% if meeting.host == request.user %}
+                            <span class="db-role-badge db-role-badge-host">Hosted by You</span>
+                        {% else %}
+                            <span class="db-role-badge db-role-badge-participant">Participant</span>
+                        {% endif %}
+                        <span>•</span>
+                        {% if meeting.is_active %}
+                            <span class="db-role-pill db-role-active">Active</span>
+                        {% else %}
+                            <span class="db-role-pill db-role-ended">Ended</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="db-hdr-actions">
+                    <a href="{% url 'meeting_history' %}" class="db-back-link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="19" y1="12" x2="5" y2="12"/>
+                            <polyline points="12 19 5 12 12 5"/>
+                        </svg>
+                        Back to Meetings
+                    </a>
+                    <button type="button" class="db-report-btn" onclick="window.print()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="7 10 12 15 17 10"/>
+                            <line x1="12" y1="15" x2="12" y2="3"/>
+                        </svg>
+                        Download Report
+                    </button>
+                </div>
+            </div>
+
+            <!-- ── AI MEETING INSIGHTS SECTION ────────────────── -->
+            {% if insight %}
+                <div class="db-insights-hdr-row">
+                    <div class="db-insights-hdr-title">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                        </svg>
+                        AI Meeting Insights
+                    </div>
+                    <a href="{% url 'generate_insights' meeting.room_code %}" class="db-regenerate-btn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+                        </svg>
+                        Regenerate Insights
+                    </a>
+                </div>
+
+                <div class="db-insights-grid">
+                    <!-- 1. Executive Summary -->
+                    <div class="db-insight-card db-insight-card-small">
+                        <div class="db-insight-card-title-row">
+                            <div class="db-insight-card-icon summary-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                    <polyline points="14 2 14 8 20 8"/>
+                                    <line x1="16" y1="13" x2="8" y2="13"/>
+                                    <line x1="16" y1="17" x2="8" y2="17"/>
+                                    <polyline points="10 9 9 9 8 9"/>
+                                </svg>
+                            </div>
+                            Executive Summary
+                        </div>
+                        <div class="db-insight-card-content" id="insightExecutiveSummary">
+                            {{ insight.summary|linebreaksbr }}
+                        </div>
+                    </div>
+
+                    <!-- 2. Key Discussion Points -->
+                    <div class="db-insight-card db-insight-card-small">
+                        <div class="db-insight-card-title-row">
+                            <div class="db-insight-card-icon discussion-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                                </svg>
+                            </div>
+                            Key Discussion Points
+                        </div>
+                        <div class="db-insight-card-content">
+                            <ul class="db-bullets-list" id="insightDiscussionPoints">
+                                <li>Loading points...</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- 3. Decisions Made -->
+                    <div class="db-insight-card db-insight-card-small">
+                        <div class="db-insight-card-title-row">
+                            <div class="db-insight-card-icon decisions-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="20 6 9 17 4 12"/>
+                                </svg>
+                            </div>
+                            Decisions Made
+                        </div>
+                        <div class="db-insight-card-content">
+                            <ul class="db-bullets-list" id="insightDecisionsMade">
+                                <li>Loading decisions...</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- 4. Action Items -->
+                    <div class="db-insight-card db-insight-card-large">
+                        <div class="db-insight-card-title-row">
+                            <div class="db-insight-card-icon actions-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                                    <line x1="9" y1="9" x2="15" y2="9"/>
+                                    <line x1="9" y1="13" x2="15" y2="13"/>
+                                    <line x1="9" y1="17" x2="15" y2="17"/>
+                                </svg>
+                            </div>
+                            Action Items
+                        </div>
+                        <div class="db-insight-card-content">
+                            <div class="db-table-responsive">
+                                <table class="db-action-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Task</th>
+                                            <th>Assigned to</th>
+                                            <th>Deadline</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="insightActionItemsTable">
+                                        <tr>
+                                            <td colspan="3" style="text-align: center; color: var(--text-muted);">No action items recorded.</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 5. Overall Sentiment -->
+                    <div class="db-insight-card db-insight-card-small">
+                        <div class="db-insight-card-title-row">
+                            <div class="db-insight-card-icon sentiment-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <path d="M8 14s1.5 2 4 2 4-2 4-2"/>
+                                    <line x1="9" y1="9" x2="9.01" y2="9"/>
+                                    <line x1="15" y1="9" x2="15.01" y2="9"/>
+                                </svg>
+                            </div>
+                            Overall Sentiment
+                        </div>
+                        <div class="db-insight-card-content sentiment-center-content">
+                            {% if insight.sentiment_score == 'Positive' %}
+                                <div class="db-sentiment-lg positive">
+                                    <span class="sentiment-emoji">😊</span>
+                                    Positive
+                                </div>
+                            {% elif insight.sentiment_score == 'Negative' %}
+                                <div class="db-sentiment-lg negative">
+                                    <span class="sentiment-emoji">😢</span>
+                                    Negative
+                                </div>
+                            {% else %}
+                                <div class="db-sentiment-lg neutral">
+                                    <span class="sentiment-emoji">😐</span>
+                                    Neutral
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- 6. Speaker Engagement -->
+                    <div class="db-insight-card db-insight-card-medium">
+                        <div class="db-insight-card-title-row">
+                            <div class="db-insight-card-icon engagement-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                                    <circle cx="9" cy="7" r="4"/>
+                                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                                    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                                </svg>
+                            </div>
+                            Speaker Engagement
+                        </div>
+                        <div class="db-insight-card-content">
+                            <div style="display: flex; flex-direction: column; gap: 0.875rem;">
+                                {% for speaker, stats in insight.speaker_stats.items %}
+                                <div class="db-engagement-item">
+                                    <div class="db-engagement-header">
+                                        <span>{{ speaker|title }}</span>
+                                        <span style="color: var(--text-muted);">{{ stats.percentage }}% ({{ stats.words }} words)</span>
+                                    </div>
+                                    <div class="db-engagement-bar-bg">
+                                        <div class="db-engagement-bar-fill" style="width: {{ stats.percentage }}%;"></div>
+                                    </div>
+                                </div>
+                                {% empty %}
+                                <p style="font-size: 0.875rem; color: var(--text-muted); margin: 0;">No speaking data recorded.</p>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                <!-- Compact Placeholder State -->
+                <div class="db-insights-pending">
+                    <div class="db-insights-pending-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                        </svg>
+                    </div>
+                    <h2 class="db-insights-pending-title">✨ AI Meeting Insights</h2>
+                    <p class="db-insights-pending-desc">AI insights haven't been generated for this meeting yet. Generate a summary, key discussion points, action items, and engagement insights from this meeting.</p>
+                    <a href="{% url 'generate_insights' meeting.room_code %}" class="db-insights-generate-btn">
+                        Generate AI Insights &rarr;
+                    </a>
+                </div>
+            {% endif %}
+
+            <!-- ── TRANSCRIPT + CHAT LOGS ─────────────────────── -->
+            <div class="db-logs-layout">
+                
+                <!-- Live Transcript -->
+                <div class="db-log-card">
+                    <div class="db-log-card-hdr">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                            <line x1="12" y1="19" x2="12" y2="23"/>
+                            <line x1="8" y1="23" x2="16" y2="23"/>
+                        </svg>
+                        Live Transcript
+                    </div>
+                    <div class="db-log-card-body">
+                        {% if transcripts %}
+                            {% for t in transcripts %}
+                                <div class="db-log-entry">
+                                    <div class="db-log-entry-meta">
+                                        <span class="db-log-entry-name transcript-name">{{ t.speaker.username }}</span>
+                                        <span class="db-log-entry-time">{{ t.timestamp|time:"H:i" }}</span>
+                                    </div>
+                                    <div class="db-log-entry-text">{{ t.text }}</div>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="db-log-empty">No transcripts recorded.</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Chat Logs -->
+                <div class="db-log-card">
+                    <div class="db-log-card-hdr">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                        </svg>
+                        Chat Logs
+                    </div>
+                    <div class="db-log-card-body">
+                        {% if chat_messages %}
+                            {% for msg in chat_messages %}
+                                <div class="db-log-entry">
+                                    <div class="db-log-entry-meta">
+                                        <span class="db-log-entry-name chat-name">{{ msg.sender.username }}</span>
+                                        <span class="db-log-entry-time">{{ msg.timestamp|time:"H:i" }}</span>
+                                    </div>
+                                    <div class="db-log-entry-text">{{ msg.message }}</div>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="db-log-empty">No chat messages recorded.</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+            </div><!-- /db-logs-layout -->
+
+        </div><!-- /db-content -->
+    </div><!-- /db-main -->
+
+</div><!-- /db-shell -->
+
+<script>
+    // ── Mobile sidebar drawer toggle ────────────────────────────
+    var hamburger = document.getElementById('dbHamburger');
+    var sidebar   = document.getElementById('dbSidebar');
+    var overlay   = document.getElementById('dbOverlay');
+
+    function openSidebar() {
+        sidebar.classList.add('open');
+        overlay.classList.add('open');
+        hamburger.setAttribute('aria-expanded', 'true');
+    }
+    function closeSidebar() {
+        sidebar.classList.remove('open');
+        overlay.classList.remove('open');
+        hamburger.setAttribute('aria-expanded', 'false');
+    }
+
+    if (hamburger && sidebar && overlay) {
+        hamburger.addEventListener('click', function () {
+            sidebar.classList.contains('open') ? closeSidebar() : openSidebar();
+        });
+        overlay.addEventListener('click', closeSidebar);
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') closeSidebar();
+        });
+    }
+
+    // ── AI Insights parsing logic (client-side JS parser) ─────
+    {% if insight %}
+    function parseBulletPoints(content) {
+        if (!content) return [];
+        return content.split('\n')
+            .map(function(line) { return line.replace(/^[•\*\-\s]+/, '').trim(); })
+            .filter(function(line) { return line.length > 0; });
+    }
+
+    function parseActionItems(content) {
+        if (!content) return [];
+        var lines = content.split('\n');
+        var items = [];
+
+        lines.forEach(function(line) {
+            line = line.replace(/^[•\*\-\s]+/, '').trim();
+            if (!line) return;
+
+            var task = line;
+            var assigned = 'Not specified';
+            var deadline = 'Not specified';
+
+            var assignedIdx = line.indexOf('Assigned to:');
+            var deadlineIdx = line.indexOf('Deadline:');
+
+            if (assignedIdx !== -1) {
+                task = line.substring(0, assignedIdx).replace(/—\s*$/, '').trim();
+                if (deadlineIdx !== -1) {
+                    assigned = line.substring(assignedIdx + 12, deadlineIdx).replace(/\|\s*$/, '').trim();
+                    deadline = line.substring(deadlineIdx + 9).trim();
+                } else {
+                    assigned = line.substring(assignedIdx + 12).trim();
+                }
+            } else if (deadlineIdx !== -1) {
+                task = line.substring(0, deadlineIdx).replace(/\|\s*$/, '').trim();
+                deadline = line.substring(deadlineIdx + 9).trim();
+            }
+
+            items.push({
+                task: task,
+                assigned: assigned,
+                deadline: deadline
+            });
+        });
+
+        return items;
+    }
+
+    function parseInsights(rawSummary) {
+        var sections = {
+            executiveSummary: '',
+            keyDiscussionPoints: [],
+            decisionsMade: [],
+            actionItems: [],
+            importantDates: []
+        };
+
+        if (!rawSummary) return sections;
+        var text = rawSummary.replace(/\r\n/g, '\n');
+
+        // Split by markdown bold headings
+        var parts = text.split(/\*\*(Executive Summary|Key Discussion Points|Decisions & Conclusions|Decisions Made|Action Items|Important Dates or Deadlines):\*\*/i);
+        
+        for (var i = 1; i < parts.length; i += 2) {
+            var heading = parts[i].toLowerCase().trim();
+            var content = parts[i+1] ? parts[i+1].trim() : '';
+
+            if (heading.indexOf('executive') !== -1) {
+                sections.executiveSummary = content;
+            } else if (heading.indexOf('discussion') !== -1) {
+                sections.keyDiscussionPoints = parseBulletPoints(content);
+            } else if (heading.indexOf('decisions') !== -1) {
+                sections.decisionsMade = parseBulletPoints(content);
+            } else if (heading.indexOf('action') !== -1) {
+                sections.actionItems = parseActionItems(content);
+            } else if (heading.indexOf('dates') !== -1 || heading.indexOf('important') !== -1) {
+                sections.importantDates = parseBulletPoints(content);
+            }
+        }
+
+        return sections;
+    }
+
+    // Run parsing on load
+    (function() {
+        var rawSummary = `{{ insight.summary|escapejs }}`;
+        var parsed = parseInsights(rawSummary);
+
+        // 1. Executive Summary
+        var execBox = document.getElementById('insightExecutiveSummary');
+        if (execBox) {
+            if (parsed.executiveSummary) {
+                execBox.innerHTML = parsed.executiveSummary.replace(/\n/g, '<br>');
+            } else {
+                execBox.innerHTML = rawSummary.replace(/\n/g, '<br>');
+            }
+        }
+
+        // 2. Key Discussion Points
+        var discBox = document.getElementById('insightDiscussionPoints');
+        if (discBox) {
+            if (parsed.keyDiscussionPoints && parsed.keyDiscussionPoints.length > 0) {
+                discBox.innerHTML = '';
+                parsed.keyDiscussionPoints.forEach(function(pt) {
+                    var li = document.createElement('li');
+                    li.textContent = pt;
+                    discBox.appendChild(li);
+                });
+            } else {
+                discBox.innerHTML = '<li>Details discussed in execution summary.</li>';
+            }
+        }
+
+        // 3. Decisions Made
+        var decBox = document.getElementById('insightDecisionsMade');
+        if (decBox) {
+            if (parsed.decisionsMade && parsed.decisionsMade.length > 0) {
+                decBox.innerHTML = '';
+                parsed.decisionsMade.forEach(function(pt) {
+                    var li = document.createElement('li');
+                    li.textContent = pt;
+                    decBox.appendChild(li);
+                });
+            } else {
+                decBox.innerHTML = '<li>General project consensus reached.</li>';
+            }
+        }
+
+        // 4. Action Items
+        var actionsBox = document.getElementById('insightActionItemsTable');
+        if (actionsBox) {
+            var actionItemsList = parsed.actionItems;
+            if (actionItemsList.length === 0) {
+                var rawActions = `{{ insight.action_items|escapejs }}`;
+                actionItemsList = parseActionItems(rawActions);
+            }
+
+            if (actionItemsList && actionItemsList.length > 0) {
+                actionsBox.innerHTML = '';
+                actionItemsList.forEach(function(item) {
+                    var tr = document.createElement('tr');
+                    
+                    var tdTask = document.createElement('td');
+                    tdTask.textContent = item.task;
+                    tr.appendChild(tdTask);
+
+                    var tdAssigned = document.createElement('td');
+                    tdAssigned.textContent = item.assigned;
+                    tr.appendChild(tdAssigned);
+
+                    var tdDeadline = document.createElement('td');
+                    tdDeadline.textContent = item.deadline;
+                    tr.appendChild(tdDeadline);
+
+                    actionsBox.appendChild(tr);
+                });
+            } else {
+                actionsBox.innerHTML = '<tr><td colspan="3" style="text-align: center; color: var(--text-muted);">No action items recorded for this meeting.</td></tr>';
+            }
+        }
+    })();
+    {% endif %}
+</script>
+
+</body>
+</html>

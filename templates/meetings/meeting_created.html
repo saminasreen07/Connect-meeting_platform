@@ -1,0 +1,51 @@
+{% extends "accounts/base.html" %}
+{% block content %}
+<div class="premium-card" style="max-width: 500px;">
+    <div style="font-size: 40px; margin-bottom: 15px;">🎉</div>
+    <h2>Meeting Created!</h2>
+    <p style="margin-bottom: 1.5rem; font-size: 0.95rem; color: var(--text-muted);">
+        Your meeting <strong>"{{ meeting.title }}"</strong> is ready. Share the link or room code with participants.
+    </p>
+
+    <div class="form-group" style="text-align: left; margin-bottom: 1.5rem;">
+        <label class="form-label" style="font-weight: 600;">Room Code</label>
+        <div style="background: var(--bg-app); border: 1px solid var(--border-color); padding: 12px; border-radius: 10px; font-size: 1.25rem; font-weight: 700; text-align: center; color: var(--primary); letter-spacing: 2px;">
+            {{ room_code }}
+        </div>
+    </div>
+
+    <div class="form-group" style="text-align: left; margin-bottom: 1.5rem;">
+        <label class="form-label" style="font-weight: 600;">Shareable Link</label>
+        <div style="display: flex; gap: 8px;">
+            <input type="text" id="share-link-input" value="{{ share_link }}" readonly style="flex: 1; font-family: monospace; font-size: 0.85rem;" />
+            <button id="copy-btn" class="btn btn-secondary" style="width: auto; padding: 0 16px;" onclick="copyLink()">Copy</button>
+        </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 2rem;">
+        <a href="{% url 'meeting_room' room_code %}" class="btn btn-primary">Start Meeting</a>
+        <a href="{% url 'dashboard' %}" class="btn btn-secondary">Go to Dashboard</a>
+    </div>
+</div>
+
+<script>
+function copyLink() {
+    const copyText = document.getElementById("share-link-input");
+    copyText.select();
+    copyText.setSelectionRange(0, 99999);
+    navigator.clipboard.writeText(copyText.value).then(() => {
+        const copyBtn = document.getElementById("copy-btn");
+        copyBtn.textContent = "Copied!";
+        copyBtn.style.background = "var(--success)";
+        copyBtn.style.color = "white";
+        setTimeout(() => {
+            copyBtn.textContent = "Copy";
+            copyBtn.style.background = "";
+            copyBtn.style.color = "";
+        }, 2000);
+    }).catch(err => {
+        console.error("Failed to copy link:", err);
+    });
+}
+</script>
+{% endblock %}

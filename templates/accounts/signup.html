@@ -1,17 +1,1135 @@
-{% extends "accounts/base.html" %}
-{% block content %}
-<div class="card">
-    <h2>Create your account</h2>
-    <form method="POST">
-        {% csrf_token %}
-        {% for field in form %}
-            {% if field.errors %}
-                <div class="error">{{ field.errors }}</div>
-            {% endif %}
-            {{ field }}
-        {% endfor %}
-        <button type="submit">Sign up</button>
-    </form>
-    <div class="link">Already have an account? <a href="{% url 'login' %}">Log in</a></div>
-</div>
-{% endblock %}
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up — Connect AI Meetings</title>
+    <meta name="description" content="Create your Connect account — join the AI-powered meeting platform for video meetings, real-time transcriptions and smart insights.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        /* ============================================================
+           CONNECT — SIGN UP PAGE
+           Functionality locked. UI-only changes matching login.html.
+        ============================================================ */
+
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --font:           'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            --primary:        #4f46e5;
+            --primary-hover:  #4338ca;
+            --primary-glow:   rgba(79, 70, 229, 0.15);
+            --primary-light:  #ede9fe;
+            --purple-mid:     #7c3aed;
+            --text-dark:      #0f172a;
+            --text-body:      #1e293b;
+            --text-muted:     #64748b;
+            --text-subtle:    #94a3b8;
+            --border:         #e2e8f0;
+            --border-focus:   #4f46e5;
+            --danger:         #ef4444;
+            --bg:             #ffffff;
+            --bg-soft:        #f8fafc;
+            --bg-badge:       #f0f0ff;
+            --t:              200ms cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        html, body {
+            min-height: 100%;
+            font-family: var(--font);
+            background: #ffffff;
+            color: var(--text-dark);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* ============================================================
+           PAGE SHELL — centers everything, white background
+        ============================================================ */
+        .lp-shell {
+            min-height: 100vh;
+            width: 100%;
+            background: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2.5rem 1.5rem;
+        }
+
+        /* ============================================================
+           CENTERED CONTENT COLUMN
+        ============================================================ */
+        .lp-col {
+            width: 100%;
+            max-width: 1200px;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        /* ============================================================
+           BACK TO HOME — above card, left-aligned to container
+        ============================================================ */
+        .back-home {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.8125rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            text-decoration: none;
+            width: fit-content;
+            padding: 0.25rem 0;
+            transition: color var(--t);
+        }
+
+        .back-home svg {
+            width: 14px;
+            height: 14px;
+            flex-shrink: 0;
+            transition: transform var(--t);
+        }
+
+        .back-home:hover {
+            color: var(--primary);
+        }
+
+        .back-home:hover svg {
+            transform: translateX(-3px);
+        }
+
+        /* ============================================================
+           MAIN CARD — the centered two-column surface
+        ============================================================ */
+        .lp-card {
+            width: 100%;
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            box-shadow:
+                0 1px 2px rgba(0,0,0,0.04),
+                0 4px 12px rgba(0,0,0,0.05),
+                0 16px 40px rgba(0,0,0,0.04);
+            display: flex;
+            overflow: hidden;
+            min-height: 640px;
+        }
+
+        /* ============================================================
+           LEFT PANEL
+        ============================================================ */
+        .lp-left {
+            width: 50%;
+            flex-shrink: 0;
+            padding: 3rem 3.25rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 1.5rem;
+            position: relative;
+            overflow: hidden;
+            background: #fff;
+        }
+
+        /* Soft lavender glow accent */
+        .lp-left::after {
+            content: '';
+            position: absolute;
+            bottom: -120px;
+            left: -120px;
+            width: 420px;
+            height: 420px;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.06) 0%, transparent 65%);
+            pointer-events: none;
+        }
+
+        .lp-left-top { display: flex; flex-direction: column; gap: 1.25rem; position: relative; z-index: 1; }
+
+        /* ---- Brand ---- */
+        .lp-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.55rem;
+        }
+
+        .lp-brand-icon {
+            width: 34px;
+            height: 34px;
+            background: var(--primary);
+            border-radius: 9px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(79,70,229,0.35);
+            flex-shrink: 0;
+        }
+
+        .lp-brand-icon svg { width: 18px; height: 18px; color: #fff; }
+
+        .lp-brand-name {
+            font-size: 1.1875rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            letter-spacing: -0.02em;
+        }
+
+        /* ---- AI Badge ---- */
+        .lp-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            background: var(--bg-badge);
+            color: var(--purple-mid);
+            font-size: 0.6875rem;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+            padding: 0.3rem 0.75rem;
+            border-radius: 9999px;
+            width: fit-content;
+            border: 1px solid rgba(124,58,237,0.12);
+        }
+
+        .lp-badge svg { width: 10px; height: 10px; }
+
+        /* ---- Headline ---- */
+        .lp-headline {
+            font-size: 2.0625rem;
+            font-weight: 800;
+            line-height: 1.18;
+            letter-spacing: -0.03em;
+            color: var(--text-dark);
+        }
+
+        .lp-headline .grad {
+            background: linear-gradient(130deg, var(--primary) 0%, var(--purple-mid) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        /* ---- Body text ---- */
+        .lp-desc {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            line-height: 1.72;
+            max-width: 340px;
+        }
+
+        /* ---- Feature list ---- */
+        .lp-features {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .lp-feat {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+        }
+
+        .lp-feat-icon {
+            width: 34px;
+            height: 34px;
+            background: var(--primary-light);
+            border-radius: 9px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            color: var(--primary);
+            transition: background var(--t);
+        }
+
+        .lp-feat:hover .lp-feat-icon { background: rgba(79,70,229,0.16); }
+        .lp-feat-icon svg { width: 15px; height: 15px; }
+
+        .lp-feat-text { display: flex; flex-direction: column; gap: 0.1rem; }
+
+        .lp-feat-title {
+            font-size: 0.8125rem;
+            font-weight: 600;
+            color: var(--text-body);
+            letter-spacing: -0.01em;
+        }
+
+        .lp-feat-desc {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            line-height: 1.45;
+        }
+
+        /* ============================================================
+           MEETING PREVIEW VISUAL
+        ============================================================ */
+        .meet-preview {
+            position: relative;
+            z-index: 1;
+            background: var(--bg-soft);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            overflow: hidden;
+            padding: 0.875rem;
+            margin-top: auto;
+        }
+
+        .meet-preview::before {
+            content: '';
+            position: absolute;
+            top: -60px;
+            right: -60px;
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle, rgba(99,102,241,0.09) 0%, transparent 65%);
+            pointer-events: none;
+        }
+
+        .meet-preview::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 90px;
+            height: 90px;
+            background-image: radial-gradient(circle, rgba(99,102,241,0.18) 1px, transparent 1px);
+            background-size: 9px 9px;
+            pointer-events: none;
+        }
+
+        .meet-bar {
+            display: flex;
+            align-items: center;
+            gap: 0.45rem;
+            margin-bottom: 0.75rem;
+            position: relative;
+            z-index: 2;
+        }
+
+        .meet-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .meet-dot.r { background: #fc5c65; }
+        .meet-dot.y { background: #fed330; }
+        .meet-dot.g { background: #26de81; }
+
+        .meet-bar-title {
+            font-size: 0.65rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-left: 0.25rem;
+            letter-spacing: 0.01em;
+        }
+
+        .meet-bar-timer {
+            margin-left: auto;
+            font-size: 0.62rem;
+            font-weight: 600;
+            color: var(--text-subtle);
+            background: #fff;
+            border: 1px solid var(--border);
+            padding: 0.15rem 0.5rem;
+            border-radius: 9999px;
+        }
+
+        .meet-grid {
+            display: grid;
+            grid-template-columns: 1.6fr 1fr;
+            gap: 0.5rem;
+            position: relative;
+            z-index: 2;
+        }
+
+        .meet-tile {
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .meet-tile.main { aspect-ratio: 4/3; }
+        .meet-tile.sm   { aspect-ratio: 4/3; }
+
+        .meet-tiles-col {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .tile-inner {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #1e293b;
+            position: relative;
+        }
+
+        .tile-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center;
+            display: block;
+        }
+
+        .speak-ring {
+            position: absolute;
+            inset: 0;
+            border-radius: 10px;
+            border: 2px solid rgba(34, 197, 94, 0.85);
+            pointer-events: none;
+            box-shadow: inset 0 0 0 1px rgba(34, 197, 94, 0.4);
+        }
+
+        .tile-name {
+            position: absolute;
+            bottom: 6px;
+            left: 6px;
+            font-size: 0.58rem;
+            font-weight: 600;
+            color: #fff;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(4px);
+            padding: 2px 7px;
+            border-radius: 4px;
+            font-family: var(--font);
+            letter-spacing: 0.01em;
+        }
+
+        .waveform {
+            position: absolute;
+            bottom: 6px;
+            right: 6px;
+            display: flex;
+            align-items: flex-end;
+            gap: 2px;
+            height: 12px;
+        }
+
+        .wv-bar {
+            width: 2px;
+            background: rgba(34,197,94,0.8);
+            border-radius: 1px;
+            animation: wvPulse 0.8s ease-in-out infinite alternate;
+        }
+
+        .wv-bar:nth-child(1) { height: 4px;  animation-delay: 0s; }
+        .wv-bar:nth-child(2) { height: 10px; animation-delay: 0.15s; }
+        .wv-bar:nth-child(3) { height: 6px;  animation-delay: 0.3s; }
+        .wv-bar:nth-child(4) { height: 10px; animation-delay: 0.45s; }
+        .wv-bar:nth-child(5) { height: 4px;  animation-delay: 0.6s; }
+
+        @keyframes wvPulse {
+            from { opacity: 0.5; transform: scaleY(0.6); }
+            to   { opacity: 1;   transform: scaleY(1); }
+        }
+
+        .ai-sum-card {
+            position: absolute;
+            bottom: 0.875rem;
+            left: 0.875rem;
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 9px;
+            padding: 0.5rem 0.625rem;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.09);
+            z-index: 5;
+            min-width: 120px;
+        }
+
+        .ai-sum-hdr {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            font-size: 0.58rem;
+            font-weight: 700;
+            color: var(--primary);
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            margin-bottom: 0.4rem;
+            font-family: var(--font);
+        }
+
+        .ai-sum-hdr svg { width: 8px; height: 8px; }
+
+        .ai-sum-line {
+            height: 4px;
+            background: #e8edf5;
+            border-radius: 9999px;
+            margin-bottom: 0.3rem;
+            animation: shimmer 2.2s ease-in-out infinite;
+        }
+
+        .ai-sum-line:nth-child(2) { width: 88%; }
+        .ai-sum-line:nth-child(3) { width: 68%; animation-delay: 0.4s; }
+        .ai-sum-line:nth-child(4) { width: 80%; animation-delay: 0.8s; }
+
+        @keyframes shimmer {
+            0%, 100% { opacity: 1; }
+            50%       { opacity: 0.45; }
+        }
+
+        /* ============================================================
+           VERTICAL DIVIDER
+        ============================================================ */
+        .lp-divider {
+            width: 1px;
+            background: var(--border);
+            flex-shrink: 0;
+            align-self: stretch;
+            margin: 2rem 0;
+        }
+
+        /* ============================================================
+           RIGHT PANEL — SIGN UP FORM
+        ============================================================ */
+        .lp-right {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2.5rem 3rem;
+            background: #fff;
+        }
+
+        .lp-form-wrap {
+            width: 100%;
+            max-width: 440px;
+            animation: fadeUp 0.35s ease-out both;
+        }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(12px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ---- Form header ---- */
+        .lp-form-hdr { margin-bottom: 1.5rem; }
+
+        .lp-form-hdr h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            letter-spacing: -0.025em;
+            margin-bottom: 0.35rem;
+            line-height: 1.2;
+        }
+
+        .lp-form-hdr p {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        /* ---- Non-field error ---- */
+        .lp-err-box {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5rem;
+            background: #fff5f5;
+            border: 1px solid #fecaca;
+            border-radius: 10px;
+            padding: 0.75rem 0.875rem;
+            margin-bottom: 1.25rem;
+            font-size: 0.8125rem;
+            font-weight: 500;
+            color: #b91c1c;
+            line-height: 1.45;
+        }
+
+        .lp-err-box svg { width: 15px; height: 15px; flex-shrink: 0; margin-top: 1px; }
+
+        /* ---- Form group ---- */
+        .lp-field { margin-bottom: 1rem; }
+
+        .lp-label {
+            display: block;
+            font-size: 0.6875rem;
+            font-weight: 700;
+            color: var(--text-body);
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            margin-bottom: 0.4rem;
+        }
+
+        /* Icon wrapper for inputs & selects */
+        .lp-input-wrap { position: relative; }
+
+        .lp-input-wrap .lp-ico {
+            position: absolute;
+            left: 0.9rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #b0bfcf;
+            pointer-events: none;
+            width: 15px;
+            height: 15px;
+            z-index: 2;
+            transition: color var(--t);
+        }
+
+        /* Select custom dropdown arrow */
+        .lp-input-wrap.select-wrap::after {
+            content: '';
+            position: absolute;
+            right: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 0;
+            height: 0;
+            border-left: 4.5px solid transparent;
+            border-right: 4.5px solid transparent;
+            border-top: 5px solid var(--text-muted);
+            pointer-events: none;
+        }
+
+        /* Style Django-rendered inputs & select dropdowns */
+        .lp-form-wrap input[type="text"],
+        .lp-form-wrap input[type="email"],
+        .lp-form-wrap input[type="password"],
+        .lp-form-wrap select {
+            width: 100%;
+            height: 46px;
+            padding: 0 1rem 0 2.625rem;
+            border: 1.5px solid #dde3ee;
+            border-radius: 11px;
+            background: #fff;
+            color: var(--text-dark);
+            font-family: var(--font);
+            font-size: 0.875rem;
+            font-weight: 400;
+            outline: none;
+            transition: border-color var(--t), box-shadow var(--t);
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+        }
+
+        .lp-form-wrap input[type="text"]::placeholder,
+        .lp-form-wrap input[type="email"]::placeholder,
+        .lp-form-wrap input[type="password"]::placeholder {
+            color: #c0cad8;
+            font-weight: 400;
+        }
+
+        .lp-form-wrap input[type="text"]:focus,
+        .lp-form-wrap input[type="email"]:focus,
+        .lp-form-wrap input[type="password"]:focus,
+        .lp-form-wrap select:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3.5px rgba(79,70,229,0.13);
+        }
+
+        .lp-form-wrap input:focus ~ .lp-ico,
+        .lp-form-wrap select:focus ~ .lp-ico {
+            color: var(--primary);
+        }
+
+        /* ---- Field error & helper text ---- */
+        .lp-field-err {
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: var(--danger);
+            margin-top: 0.3rem;
+        }
+
+        .lp-field-help {
+            font-size: 0.71875rem;
+            color: var(--text-muted);
+            margin-top: 0.3rem;
+            line-height: 1.4;
+        }
+
+        /* Password requirement checklist */
+        .pwd-checklist {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+            margin-top: 0.55rem;
+            padding-left: 0.1rem;
+        }
+
+        .pwd-chk-item {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.735rem;
+            color: var(--text-muted);
+            line-height: 1.35;
+        }
+
+        .pwd-chk-item svg {
+            width: 13px;
+            height: 13px;
+            color: var(--primary);
+            flex-shrink: 0;
+        }
+
+        /* ---- Submit button ---- */
+        .lp-submit {
+            width: 100%;
+            height: 48px;
+            background: var(--primary);
+            color: #fff;
+            font-family: var(--font);
+            font-size: 0.9375rem;
+            font-weight: 600;
+            letter-spacing: 0.005em;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.45rem;
+            margin-top: 1.25rem;
+            transition: background var(--t), box-shadow var(--t), transform 140ms ease;
+        }
+
+        .lp-submit svg {
+            width: 17px;
+            height: 17px;
+            transition: transform var(--t);
+        }
+
+        .lp-submit:hover {
+            background: var(--primary-hover);
+            box-shadow: 0 4px 20px rgba(79,70,229,0.3);
+        }
+
+        .lp-submit:hover svg { transform: translateX(3px); }
+
+        .lp-submit:active { transform: scale(0.985); }
+
+        /* ---- Signup/Login nav ---- */
+        .lp-signup {
+            text-align: center;
+            margin-top: 1.25rem;
+            font-size: 0.8125rem;
+            color: var(--text-muted);
+        }
+
+        .lp-signup a {
+            color: var(--primary);
+            font-weight: 600;
+            text-decoration: none;
+            transition: color var(--t);
+        }
+
+        .lp-signup a:hover {
+            color: var(--primary-hover);
+            text-decoration: underline;
+        }
+
+        /* ============================================================
+           RESPONSIVE
+        ============================================================ */
+        @media (max-width: 960px) {
+            .lp-left  { padding: 2.5rem 2.25rem; }
+            .lp-right { padding: 2.25rem 2rem; }
+            .lp-headline { font-size: 1.75rem; }
+        }
+
+        @media (max-width: 768px) {
+            .lp-shell { padding: 1.5rem 1rem; justify-content: flex-start; }
+            .lp-card  { flex-direction: column; border-radius: 16px; min-height: auto; }
+            .lp-left  { width: 100%; padding: 2rem 1.75rem; gap: 1rem; }
+            .lp-divider {
+                width: calc(100% - 3.5rem);
+                height: 1px;
+                margin: 0 1.75rem;
+                align-self: auto;
+            }
+            .lp-right { padding: 2rem 1.75rem; }
+            .lp-form-wrap { max-width: 100%; }
+            .lp-headline { font-size: 1.625rem; }
+            .meet-preview { display: none; }
+        }
+
+        @media (max-width: 480px) {
+            .lp-shell { padding: 1rem 0.875rem; }
+            .lp-left  { padding: 1.75rem 1.25rem; }
+            .lp-right { padding: 1.5rem 1.25rem 2rem; }
+            .lp-headline { font-size: 1.4375rem; }
+            .lp-form-hdr h1 { font-size: 1.5rem; }
+            .lp-card { border-radius: 12px; }
+            /* Hide feature list on mobile — form is the priority */
+            .lp-features { display: none; }
+            .lp-desc { font-size: 0.8125rem; max-width: 100%; }
+            /* Password checklist — wrap long text gracefully */
+            .pwd-chk-item {
+                font-size: 0.7rem;
+                word-break: break-word;
+                overflow-wrap: break-word;
+            }
+        }
+
+        @media (max-width: 375px) {
+            .lp-shell { padding: 0.75rem 0.75rem; }
+            .lp-left  { padding: 1.5rem 1rem; }
+            .lp-right { padding: 1.25rem 1rem 1.75rem; }
+            .lp-headline { font-size: 1.3125rem; }
+            .lp-form-hdr h1 { font-size: 1.375rem; }
+            /* Hide badge on very small screens to save vertical space */
+            .lp-badge { display: none; }
+            .lp-form-wrap input[type="text"],
+            .lp-form-wrap input[type="email"],
+            .lp-form-wrap input[type="password"],
+            .lp-form-wrap select {
+                font-size: 0.875rem;
+            }
+            .pwd-chk-item { font-size: 0.6875rem; }
+        }
+
+    </style>
+</head>
+<body>
+
+<!-- ================================================================
+     PAGE SHELL (white, full-height, centers the column)
+================================================================ -->
+<main class="lp-shell">
+<div class="lp-col">
+
+    <!-- Back to home — above the card, left-aligned to container -->
+    <a href="{% url 'landing' %}" class="back-home">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+             stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 12H5M12 5l-7 7 7 7"/>
+        </svg>
+        Back to home
+    </a>
+
+    <!-- ============================================================
+         MAIN CARD
+    ============================================================ -->
+    <div class="lp-card">
+
+        <!-- ========== LEFT PANEL ========== -->
+        <div class="lp-left">
+
+            <div class="lp-left-top">
+
+                <!-- Brand -->
+                <div class="lp-brand">
+                    <div class="lp-brand-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M15 10l4.553-2.069A1 1 0 0 1 21 8.87v6.26a1 1 0 0 1-1.447.899L15 14"/>
+                            <rect x="2" y="6" width="13" height="12" rx="2"/>
+                        </svg>
+                    </div>
+                    <span class="lp-brand-name">Connect</span>
+                </div>
+
+                <!-- AI Badge -->
+                <div class="lp-badge">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/>
+                    </svg>
+                    AI-Powered Meetings
+                </div>
+
+                <!-- Headline -->
+                <h2 class="lp-headline">
+                    Meet, Collaborate<br>
+                    and <span class="grad">Achieve More</span>
+                </h2>
+
+                <!-- Description -->
+                <p class="lp-desc">
+                    Connect brings your team together with seamless video meetings,
+                    real-time transcriptions and AI insights.
+                </p>
+
+                <!-- Features -->
+                <div class="lp-features">
+
+                    <div class="lp-feat">
+                        <div class="lp-feat-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                 stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M15 10l4.553-2.069A1 1 0 0 1 21 8.87v6.26a1 1 0 0 1-1.447.899L15 14"/>
+                                <rect x="2" y="6" width="13" height="12" rx="2"/>
+                            </svg>
+                        </div>
+                        <div class="lp-feat-text">
+                            <span class="lp-feat-title">HD Video Meetings</span>
+                            <span class="lp-feat-desc">Crystal clear audio and video</span>
+                        </div>
+                    </div>
+
+                    <div class="lp-feat">
+                        <div class="lp-feat-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                 stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M8 9h8M8 13h6"/>
+                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10z"/>
+                            </svg>
+                        </div>
+                        <div class="lp-feat-text">
+                            <span class="lp-feat-title">AI Transcriptions</span>
+                            <span class="lp-feat-desc">Real-time captions &amp; summaries</span>
+                        </div>
+                    </div>
+
+                    <div class="lp-feat">
+                        <div class="lp-feat-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                 stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M18 20V10M12 20V4M6 20v-6"/>
+                            </svg>
+                        </div>
+                        <div class="lp-feat-text">
+                            <span class="lp-feat-title">Smart Insights</span>
+                            <span class="lp-feat-desc">AI-powered meeting analytics</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div><!-- /lp-left-top -->
+
+            <!-- ---- Meeting preview visual ---- -->
+            <div class="meet-preview">
+
+                <!-- App bar -->
+                <div class="meet-bar">
+                    <span class="meet-dot r"></span>
+                    <span class="meet-dot y"></span>
+                    <span class="meet-dot g"></span>
+                    <span class="meet-bar-title">Connect Meeting</span>
+                    <span class="meet-bar-timer">● 14:32</span>
+                </div>
+
+                <!-- Participant grid with realistic participant photography -->
+                <div class="meet-grid">
+
+                    <!-- Main / active speaker -->
+                    <div class="meet-tile main">
+                        <div class="tile-inner">
+                            <img src="{% static 'images/sadhana.jpg' %}" alt="Sarah" class="tile-img" onerror="this.style.display='none';">
+                            <div class="speak-ring"></div>
+                            <div class="tile-name">Sarah</div>
+                            <div class="waveform">
+                                <div class="wv-bar"></div>
+                                <div class="wv-bar"></div>
+                                <div class="wv-bar"></div>
+                                <div class="wv-bar"></div>
+                                <div class="wv-bar"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Side tiles column -->
+                    <div class="meet-tiles-col">
+                        <div class="meet-tile sm">
+                            <div class="tile-inner">
+                                <img src="{% static 'images/alex.jpg' %}" alt="Alex" class="tile-img" onerror="this.style.display='none';">
+                                <div class="tile-name">Alex</div>
+                            </div>
+                        </div>
+                        <div class="meet-tile sm">
+                            <div class="tile-inner">
+                                <img src="{% static 'images/riya.jpg' %}" alt="Riya" class="tile-img" onerror="this.style.display='none';">
+                                <div class="tile-name">Riya</div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div><!-- /meet-grid -->
+
+                <!-- AI Summary overlay -->
+                <div class="ai-sum-card">
+                    <div class="ai-sum-hdr">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/>
+                        </svg>
+                        AI Summary
+                    </div>
+                    <div class="ai-sum-line"></div>
+                    <div class="ai-sum-line"></div>
+                    <div class="ai-sum-line"></div>
+                </div>
+
+            </div><!-- /meet-preview -->
+
+        </div><!-- /lp-left -->
+
+        <!-- Vertical divider -->
+        <div class="lp-divider"></div>
+
+        <!-- ========== RIGHT PANEL — SIGN UP FORM ========== -->
+        <div class="lp-right">
+            <div class="lp-form-wrap">
+
+                <!-- Form header -->
+                <div class="lp-form-hdr">
+                    <h1>Create your account</h1>
+                    <p>Join Connect for AI-powered real-time meetings</p>
+                </div>
+
+                <!-- Non-field errors (e.g. invalid credentials/data) -->
+                {% if form.non_field_errors %}
+                <div class="lp-err-box">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="12" y1="8" x2="12" y2="12"/>
+                        <line x1="12" y1="16" x2="12.01" y2="16"/>
+                    </svg>
+                    {{ form.non_field_errors.0 }}
+                </div>
+                {% endif %}
+
+                <form method="POST">
+                    {% csrf_token %}
+
+                    <!-- USERNAME -->
+                    <div class="lp-field">
+                        <label class="lp-label" for="{{ form.username.id_for_label }}">Username</label>
+                        <div class="lp-input-wrap">
+                            <svg class="lp-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                                <circle cx="12" cy="7" r="4"/>
+                            </svg>
+                            {{ form.username }}
+                        </div>
+                        {% if form.username.errors %}
+                            <div class="lp-field-err">{{ form.username.errors.0 }}</div>
+                        {% endif %}
+                        <div class="lp-field-help">Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only.</div>
+                    </div>
+
+                    <!-- EMAIL -->
+                    <div class="lp-field">
+                        <label class="lp-label" for="{{ form.email.id_for_label }}">Email</label>
+                        <div class="lp-input-wrap">
+                            <svg class="lp-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                                <polyline points="22,6 12,13 2,6"/>
+                            </svg>
+                            {{ form.email }}
+                        </div>
+                        {% if form.email.errors %}
+                            <div class="lp-field-err">{{ form.email.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- ROLE -->
+                    <div class="lp-field">
+                        <label class="lp-label" for="{{ form.role.id_for_label }}">Role</label>
+                        <div class="lp-input-wrap select-wrap">
+                            <svg class="lp-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                                <circle cx="9" cy="7" r="4"/>
+                                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                            </svg>
+                            {{ form.role }}
+                        </div>
+                        {% if form.role.errors %}
+                            <div class="lp-field-err">{{ form.role.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- PASSWORD -->
+                    <div class="lp-field">
+                        <label class="lp-label" for="{{ form.password1.id_for_label }}">Password</label>
+                        <div class="lp-input-wrap">
+                            <svg class="lp-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                            </svg>
+                            {{ form.password1 }}
+                        </div>
+                        {% if form.password1.errors %}
+                            <div class="lp-field-err">{{ form.password1.errors.0 }}</div>
+                        {% endif %}
+
+                        <!-- Clean checklist presentation of password requirements -->
+                        <div class="pwd-checklist">
+                            <div class="pwd-chk-item">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                                At least 8 characters
+                            </div>
+                            <div class="pwd-chk-item">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                                Not commonly used
+                            </div>
+                            <div class="pwd-chk-item">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                                Must contain letters and numbers
+                            </div>
+                            <div class="pwd-chk-item">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                                Can't be too similar to your other personal information
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PASSWORD CONFIRMATION -->
+                    <div class="lp-field">
+                        <label class="lp-label" for="{{ form.password2.id_for_label }}">Password Confirmation</label>
+                        <div class="lp-input-wrap">
+                            <svg class="lp-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                            </svg>
+                            {{ form.password2 }}
+                        </div>
+                        {% if form.password2.errors %}
+                            <div class="lp-field-err">{{ form.password2.errors.0 }}</div>
+                        {% endif %}
+                        <div class="lp-field-help">Enter the same password as before, for verification.</div>
+                    </div>
+
+                    <!-- Submit — preserves existing button behavior -->
+                    <button type="submit" class="lp-submit">
+                        Sign up
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M5 12h14M12 5l7 7-7 7"/>
+                        </svg>
+                    </button>
+                </form>
+
+                <!-- Existing Login link -->
+                <div class="lp-signup">
+                    Already have an account? <a href="{% url 'login' %}">Log in</a>
+                </div>
+
+            </div><!-- /lp-form-wrap -->
+        </div><!-- /lp-right -->
+
+    </div><!-- /lp-card -->
+
+</div><!-- /lp-col -->
+</main>
+
+<script>
+    /* Presentational only — sets placeholder text on Django-rendered inputs */
+    (function () {
+        var u = document.getElementById('id_username');
+        var e = document.getElementById('id_email');
+        var p1 = document.getElementById('id_password1');
+        var p2 = document.getElementById('id_password2');
+        if (u && !u.placeholder) u.placeholder = 'Enter your username';
+        if (e && !e.placeholder) e.placeholder = 'Enter your email address';
+        if (p1 && !p1.placeholder) p1.placeholder = 'Enter your password';
+        if (p2 && !p2.placeholder) p2.placeholder = 'Confirm your password';
+    })();
+</script>
+</body>
+</html>

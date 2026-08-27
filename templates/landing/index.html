@@ -8,396 +8,603 @@
     <meta name="description" content="Connect brings HD video, live transcription, real-time translation, and AI meeting summaries to every call.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'css/landing.css' %}">
 </head>
 <body>
 
-<!-- NAV -->
+<!-- ============================================================
+     NAVBAR
+============================================================ -->
 <nav class="nav" id="nav">
-    <div class="nav-inner">
-        <a href="{% url 'landing' %}" class="logo">
-            <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-                <rect width="28" height="28" rx="8" fill="#1a73e8"/>
-                <path d="M9 9.5L19 14L9 18.5V9.5Z" fill="white"/>
-            </svg>
+    <div class="container nav-inner">
+
+        <!-- Logo (uses approved Connect logo system) -->
+        <a href="{% url 'landing' %}" class="brand-link">
+            <div class="brand-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                     stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M15 10l4.553-2.069A1 1 0 0 1 21 8.87v6.26a1 1 0 0 1-1.447.899L15 14"/>
+                    <rect x="2" y="6" width="13" height="12" rx="2"/>
+                </svg>
+            </div>
             <span>Connect</span>
         </a>
 
+        <!-- Center links -->
         <div class="nav-links" id="navLinks">
             <a href="#features">Features</a>
             <a href="#how-it-works">How it works</a>
+            <a href="#testimonials">Testimonials</a>
             <a href="#faq">FAQ</a>
+            <!-- Mobile-only: shown only inside the open hamburger dropdown -->
+            <a href="{% url 'login' %}" class="nav-mobile-signin">Sign in</a>
+            <a href="{% url 'signup' %}" class="nav-mobile-newmtg">
+                New meeting
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </a>
         </div>
 
+
+        <!-- Right actions -->
         <div class="nav-actions">
             <a href="{% url 'login' %}" class="nav-signin">Sign in</a>
-            <a href="{% url 'signup' %}" class="nav-start">New meeting</a>
+            <a href="{% url 'signup' %}" class="btn-primary-sm">
+                New meeting
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M5 12h14M12 5l7 7-7 7"/>
+                </svg>
+            </a>
         </div>
 
         <button class="hamburger" id="hamburger" aria-label="Menu">
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M3 5H17M3 10H17M3 15H17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
         </button>
+
     </div>
 </nav>
 
-<!-- HERO -->
+<!-- ============================================================
+     HERO SECTION
+============================================================ -->
 <section class="hero">
-    <div class="hero-inner">
-        <!-- Left: text + CTAs -->
-        <div class="hero-text">
-            <h1>Video meetings<br>for everyone</h1>
-            <p>Connect keeps your team together. HD calls, live transcription, real-time translation, and AI-generated summaries — all in one place, right in your browser.</p>
+    <div class="container hero-inner">
 
+        <!-- Left: Headline & CTAs -->
+        <div class="hero-text">
+
+            <!-- AI Badge -->
+            <div class="eyebrow">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/>
+                </svg>
+                AI-Powered Meetings
+            </div>
+
+            <h1 class="hero-h1">
+                Video meetings<br>
+                for <span class="grad">everyone</span>
+            </h1>
+
+            <p class="hero-p">
+                Connect keeps your team together. HD calls, live transcription, real-time translation, and AI-generated summaries — all in one place, right in your browser.
+            </p>
+
+            <!-- Actions row -->
             <div class="hero-join">
-                <a href="{% url 'signup' %}" class="btn-blue">New meeting</a>
+                <a href="{% url 'signup' %}" class="btn-hero-primary">
+                    New meeting
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M5 12h14M12 5l7 7-7 7"/>
+                    </svg>
+                </a>
                 <div class="join-code-wrap">
                     <input class="join-input" type="text" placeholder="Enter a code or link">
                     <button class="join-btn">Join</button>
                 </div>
             </div>
-            <p class="hero-note">No account needed to join · Works in any browser</p>
-        </div>
 
-        <!-- Right: product preview -->
+            <p class="hero-note">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--primary);"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                No account needed to join &nbsp;·&nbsp;
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--primary);"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                Works in any browser
+            </p>
+
+        </div><!-- /hero-text -->
+
+        <!-- Right: Flagship Product Preview Mockup -->
         <div class="hero-visual">
+
             <div class="meeting-window">
+                <!-- Window Header Bar -->
                 <div class="window-bar">
-                    <div class="window-dot red"></div>
-                    <div class="window-dot yellow"></div>
-                    <div class="window-dot green"></div>
-                    <span class="window-title">Design Review · 4 people</span>
+                    <span class="window-dot red"></span>
+                    <span class="window-dot yellow"></span>
+                    <span class="window-dot green"></span>
+                    <span class="window-title">Connect Meeting</span>
+                    <span class="window-timer">● 14:32</span>
                 </div>
-                <div class="video-grid">
-                    <div class="video-tile speaking">
-                        <div class="tile-avatar" style="background:#e8f0fe;color:#1a73e8">A</div>
-                        <div class="tile-name">
-                            <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M5 1C4.17 1 3.5 1.67 3.5 2.5V5C3.5 5.83 4.17 6.5 5 6.5C5.83 6.5 6.5 5.83 6.5 5V2.5C6.5 1.67 5.83 1 5 1Z" fill="white"/><path d="M8 4.5V5C8 6.66 6.66 8 5 8C3.34 8 2 6.66 2 5V4.5" stroke="white" stroke-width=".9" stroke-linecap="round"/></svg>
-                            Alex
+
+                <!-- Participant Video Grid -->
+                <div class="hero-video-grid">
+
+                    <!-- Main / active speaker -->
+                    <div class="hero-vtile main">
+                        <img src="{% static 'images/sadhana.jpg' %}" alt="Sarah" class="hero-tile-img" onerror="this.style.display='none';">
+                        <div class="hero-speak-ring"></div>
+                        <div class="hero-tile-name">Sarah</div>
+                        <div class="hero-waveform">
+                            <div class="hero-wv-bar"></div>
+                            <div class="hero-wv-bar"></div>
+                            <div class="hero-wv-bar"></div>
+                            <div class="hero-wv-bar"></div>
+                            <div class="hero-wv-bar"></div>
                         </div>
                     </div>
-                    <div class="video-tile">
-                        <div class="tile-avatar" style="background:#fce8e6;color:#d93025">S</div>
-                        <div class="tile-name">
-                            <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><rect x=".75" y="2.5" width="5.75" height="5" rx="1.25" stroke="white" stroke-width=".9"/><path d="M6.5 4.1L9 3V7L6.5 5.9" stroke="white" stroke-width=".9" stroke-linejoin="round"/></svg>
-                            Sarah
+
+                    <!-- Side tiles column -->
+                    <div class="hero-vtiles-col">
+                        <div class="hero-vtile sm">
+                            <img src="{% static 'images/alex.jpg' %}" alt="Alex" class="hero-tile-img" onerror="this.style.display='none';">
+                            <div class="hero-tile-name">Alex</div>
+                        </div>
+                        <div class="hero-vtile sm">
+                            <img src="{% static 'images/riya.jpg' %}" alt="Riya" class="hero-tile-img" onerror="this.style.display='none';">
+                            <div class="hero-tile-name">Riya</div>
                         </div>
                     </div>
-                    <div class="video-tile">
-                        <div class="tile-avatar" style="background:#e6f4ea;color:#188038">D</div>
-                        <div class="tile-name">David</div>
-                    </div>
-                    <div class="video-tile you-tile">
-                        <div class="tile-avatar" style="background:#f3e8fd;color:#8430ce">Y</div>
-                        <div class="tile-name">You</div>
-                    </div>
-                </div>
-                <!-- Controls bar -->
-                <div class="controls-bar">
-                    <button class="ctrl-btn active" title="Mic">
-                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 2C8.17 2 7.5 2.67 7.5 3.5V9C7.5 9.83 8.17 10.5 9 10.5C9.83 10.5 10.5 9.83 10.5 9V3.5C10.5 2.67 9.83 2 9 2Z" fill="currentColor"/><path d="M14 8V9C14 11.76 11.76 14 9 14C6.24 14 4 11.76 4 9V8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><line x1="9" y1="14" x2="9" y2="16.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+
+                </div><!-- /hero-video-grid -->
+
+                <!-- Controls Bar -->
+                <div class="hero-controls">
+                    <button class="hctrl-btn" title="Microphone">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
                     </button>
-                    <button class="ctrl-btn active" title="Camera">
-                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="5" width="10" height="8" rx="2" stroke="currentColor" stroke-width="1.3"/><path d="M12 8L16 6V12L12 10" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
+                    <button class="hctrl-btn" title="Camera">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
                     </button>
-                    <button class="ctrl-btn" title="Share screen">
-                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="1" y="3" width="16" height="11" rx="2" stroke="currentColor" stroke-width="1.3"/><path d="M6 15H12M9 14V15" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M7 8.5L9 6.5L11 8.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><line x1="9" y1="6.5" x2="9" y2="11" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+                    <button class="hctrl-btn" title="Share Screen">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/><polyline points="16 7 12 3 8 7"/></svg>
                     </button>
-                    <button class="ctrl-btn end-call" title="End call">
-                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M3.5 10.5C3.5 10.5 4.5 7 9 7C13.5 7 14.5 10.5 14.5 10.5L12.5 12C12.5 12 12 11.5 11 11C10 10.5 10 10 9 10C8 10 8 10.5 7 11C6 11.5 5.5 12 5.5 12L3.5 10.5Z" stroke="white" stroke-width="1.3" stroke-linejoin="round"/></svg>
+                    <button class="hctrl-btn" title="More">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                    </button>
+                    <button class="hctrl-btn end-call" title="End Call">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 2.59 3.4z"/></svg>
                     </button>
                 </div>
-                <!-- Live caption bar -->
-                <div class="caption-bar">
-                    <span class="caption-speaker">Alex</span>
-                    <span class="caption-text">Let's walk through the new dashboard design first...</span>
+
+            </div><!-- /meeting-window -->
+
+            <!-- Floating AI summary card overlay -->
+            <div class="hero-ai-card">
+                <div class="hero-ai-hdr">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/>
+                    </svg>
+                    AI SUMMARY
+                </div>
+                <div class="hero-ai-list">
+                    <div class="hero-ai-item">3 action items detected</div>
+                    <div class="hero-ai-item">Key decisions highlighted</div>
+                    <div class="hero-ai-item">Summary ready</div>
                 </div>
             </div>
-            <!-- Floating AI summary chip -->
-            <div class="ai-chip">
-                <div class="ai-chip-icon">
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1L8.5 5H13L9.5 7.5L11 11.5L7 9L3 11.5L4.5 7.5L1 5H5.5L7 1Z" fill="#1a73e8"/></svg>
-                </div>
-                <div>
-                    <div class="ai-chip-label">AI Summary ready</div>
-                    <div class="ai-chip-sub">3 action items detected</div>
-                </div>
-            </div>
-        </div>
+
+        </div><!-- /hero-visual -->
+
     </div>
 </section>
 
-<!-- TRUST BAR -->
-<div class="trust-bar">
-    <span>Trusted by teams at</span>
-    <span class="trust-name">Acme Corp</span>
-    <span class="trust-dot">·</span>
-    <span class="trust-name">NovaTech</span>
-    <span class="trust-dot">·</span>
-    <span class="trust-name">Veritas Labs</span>
-    <span class="trust-dot">·</span>
-    <span class="trust-name">Orbit Systems</span>
-    <span class="trust-dot">·</span>
-    <span class="trust-name">Crescent Studio</span>
+<!-- ============================================================
+     TRUSTED-BY STRIP
+============================================================ -->
+<div class="trust-strip">
+    <div class="container trust-inner">
+        <span class="trust-label">Trusted by teams at</span>
+        <div class="trust-brands">
+            <span class="trust-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                Acme Corp
+            </span>
+            <span class="trust-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+                NovaTech
+            </span>
+            <span class="trust-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 2v7.5M14 2v7.5M8.5 4h7M5 9h14M6 20h12a2 2 0 0 0 2-2V9H4v9a2 2 0 0 0 2 2z"/></svg>
+                Veritas Labs
+            </span>
+            <span class="trust-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                Orbit Systems
+            </span>
+            <span class="trust-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/></svg>
+                Crescent Studio
+            </span>
+        </div>
+    </div>
 </div>
 
-<!-- FEATURES -->
-<section class="features" id="features">
+<!-- ============================================================
+     FEATURES SECTION
+============================================================ -->
+<section class="features-section" id="features">
     <div class="container">
-        <p class="section-eyebrow">Features</p>
-        <h2 class="section-h2">Everything your meetings<br>have been missing</h2>
-        <p class="section-body">A complete AI workspace built around live conversations — no add-ons required.</p>
+
+        <div class="eyebrow">FEATURES</div>
+        <h2 class="section-h2 center">Everything your meetings have been <span class="grad">missing</span></h2>
+        <p class="section-body center">A complete AI workspace built around live conversations — no add-ons required.</p>
 
         <div class="features-grid">
+
             <div class="feature-card reveal">
-                <div class="feature-icon" style="background:#e8f0fe">
-                    <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect x="2" y="4" width="13" height="10" rx="2.5" stroke="#1a73e8" stroke-width="1.5"/><path d="M15 8.5L20 6V16L15 13.5" stroke="#1a73e8" stroke-width="1.5" stroke-linejoin="round"/></svg>
+                <div class="feat-icon-box">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M15 10l4.553-2.069A1 1 0 0 1 21 8.87v6.26a1 1 0 0 1-1.447.899L15 14"/>
+                        <rect x="2" y="6" width="13" height="12" rx="2"/>
+                    </svg>
                 </div>
                 <h3>HD Video</h3>
                 <p>Crystal-clear video calls that adapt to your connection automatically.</p>
             </div>
 
             <div class="feature-card reveal">
-                <div class="feature-icon" style="background:#e6f4ea">
-                    <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M4 6H18M4 10H14M4 14H11" stroke="#188038" stroke-width="1.5" stroke-linecap="round"/><circle cx="17" cy="16" r="3" fill="#188038" opacity=".2"/><path d="M15.5 16H18.5M17 14.5V17.5" stroke="#188038" stroke-width="1.3" stroke-linecap="round"/></svg>
+                <div class="feat-icon-box">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M8 9h8M8 13h6"/>
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10z"/>
+                    </svg>
                 </div>
                 <h3>Live Transcription</h3>
                 <p>Real-time, speaker-aware captions so nothing is missed or misheard.</p>
             </div>
 
             <div class="feature-card reveal">
-                <div class="feature-icon" style="background:#fce8e6">
-                    <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><circle cx="11" cy="11" r="8" stroke="#d93025" stroke-width="1.5"/><path d="M3 11H19M11 3C11 3 7 7 7 11C7 15 11 19 11 19M11 3C11 3 15 7 15 11C15 15 11 19 11 19" stroke="#d93025" stroke-width="1.5"/></svg>
+                <div class="feat-icon-box">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="2" y1="12" x2="22" y2="12"/>
+                        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                    </svg>
                 </div>
                 <h3>Live Translation</h3>
                 <p>50+ languages, translated in real time. No plugins, no lag, no friction.</p>
             </div>
 
             <div class="feature-card reveal">
-                <div class="feature-icon" style="background:#f3e8fd">
-                    <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M11 3L13.5 8.5L19.5 9L15.5 13L16.5 19L11 16L5.5 19L6.5 13L2.5 9L8.5 8.5L11 3Z" stroke="#8430ce" stroke-width="1.5" stroke-linejoin="round"/></svg>
+                <div class="feat-icon-box">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/>
+                    </svg>
                 </div>
                 <h3>AI Meeting Summaries</h3>
                 <p>Structured notes and action items delivered the moment your call ends.</p>
             </div>
 
             <div class="feature-card reveal">
-                <div class="feature-icon" style="background:#fef7e0">
-                    <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M6 11L9 14L16 7" stroke="#f29900" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><rect x="3" y="3" width="16" height="16" rx="4" stroke="#f29900" stroke-width="1.5"/></svg>
+                <div class="feat-icon-box">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="9 11 12 14 22 4"/>
+                        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+                    </svg>
                 </div>
                 <h3>Action Item Detection</h3>
                 <p>Tasks, owners, and deadlines auto-extracted from every conversation.</p>
             </div>
 
             <div class="feature-card reveal">
-                <div class="feature-icon" style="background:#e8f0fe">
-                    <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M12 3C16.97 3 21 7.03 21 12C21 16.97 16.97 21 12 21C7.03 21 3 16.97 3 12" stroke="#1a73e8" stroke-width="1.5" stroke-linecap="round"/><path d="M3 12C3 9 5 6.5 8 5" stroke="#1a73e8" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="2 2"/><path d="M7 3L3 7L3 3L7 3Z" fill="#1a73e8"/></svg>
+                <div class="feat-icon-box">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 20V10M12 20V4M6 20v-6"/>
+                    </svg>
                 </div>
                 <h3>Smart Insights</h3>
                 <p>Topic trends and sentiment analysis help you understand what matters.</p>
             </div>
-        </div>
+
+        </div><!-- /features-grid -->
+
     </div>
 </section>
 
-<!-- HOW IT WORKS -->
-<section class="how" id="how-it-works">
+<!-- ============================================================
+     HOW IT WORKS SECTION
+============================================================ -->
+<section class="how-section" id="how-it-works">
     <div class="container">
-        <p class="section-eyebrow">How it works</p>
-        <h2 class="section-h2">From click to clarity in four steps</h2>
 
-        <div class="steps">
-            <div class="step reveal">
-                <div class="step-num">1</div>
-                <div class="step-body">
-                    <h3>Create a meeting</h3>
-                    <p>One click. No downloads required. Your meeting room is ready instantly.</p>
-                </div>
+        <div class="eyebrow">HOW IT WORKS</div>
+        <h2 class="section-h2 center">From click to clarity in four steps</h2>
+
+        <div class="how-steps-row">
+
+            <div class="step-card reveal">
+                <div class="step-badge">1</div>
+                <h3>Create a meeting</h3>
+                <p>One click. No downloads required. Your meeting room is ready instantly.</p>
             </div>
-            <div class="step-divider"></div>
-            <div class="step reveal">
-                <div class="step-num">2</div>
-                <div class="step-body">
-                    <h3>Invite anyone</h3>
-                    <p>Share a link. Participants join from any browser on any device.</p>
-                </div>
+
+            <div class="step-card reveal">
+                <div class="step-badge">2</div>
+                <h3>Invite anyone</h3>
+                <p>Share a link. Participants join from any browser on any device.</p>
             </div>
-            <div class="step-divider"></div>
-            <div class="step reveal">
-                <div class="step-num">3</div>
-                <div class="step-body">
-                    <h3>Talk naturally</h3>
-                    <p>Live translation and captions run in the background. Just have the conversation.</p>
-                </div>
+
+            <div class="step-card reveal">
+                <div class="step-badge">3</div>
+                <h3>Talk naturally</h3>
+                <p>Live translation and captions run in the background. Just have the conversation.</p>
             </div>
-            <div class="step-divider"></div>
-            <div class="step reveal">
-                <div class="step-num">4</div>
-                <div class="step-body">
-                    <h3>Get your summary</h3>
-                    <p>AI-written notes and action items land in your inbox before the next meeting starts.</p>
-                </div>
+
+            <div class="step-card reveal">
+                <div class="step-badge">4</div>
+                <h3>Get your summary</h3>
+                <p>AI-written notes and action items land in your inbox before the next meeting starts.</p>
             </div>
-        </div>
+
+        </div><!-- /how-steps-row -->
+
     </div>
 </section>
 
-<!-- TESTIMONIALS -->
-<section class="testimonials">
+<!-- ============================================================
+     TESTIMONIALS SECTION
+============================================================ -->
+<section class="testi-section" id="testimonials">
     <div class="container">
+
+        <div class="eyebrow">TESTIMONIALS</div>
         <h2 class="section-h2 center">Loved by teams worldwide</h2>
+
         <div class="testi-grid">
+
             <div class="testi-card reveal">
-                <div class="stars">★★★★★</div>
-                <p>"Connect has transformed how our distributed team collaborates. The live translation alone helped us expand into 3 new markets."</p>
+                <div>
+                    <div class="stars">★★★★★</div>
+                    <p class="testi-quote">"Connect has transformed how our distributed team collaborates. The live translation alone helped us expand into 3 new markets."</p>
+                </div>
                 <div class="testi-author">
-                    <div class="testi-avatar" style="background:#e8f0fe;color:#1a73e8">M</div>
-                    <div>
+                    <div class="testi-av">M</div>
+                    <div class="testi-meta">
                         <strong>Maria Chen</strong>
                         <span>Head of Product, Veritas Labs</span>
                     </div>
                 </div>
             </div>
+
             <div class="testi-card reveal">
-                <div class="stars">★★★★★</div>
-                <p>"AI summaries save our team hours every week. Everyone is fully present because the notes take care of themselves."</p>
+                <div>
+                    <div class="stars">★★★★★</div>
+                    <p class="testi-quote">"AI summaries save our team hours every week. Everyone is fully present because the notes take care of themselves."</p>
+                </div>
                 <div class="testi-author">
-                    <div class="testi-avatar" style="background:#e6f4ea;color:#188038">J</div>
-                    <div>
+                    <div class="testi-av" style="background:#e6f4ea;color:#188038;">J</div>
+                    <div class="testi-meta">
                         <strong>James Park</strong>
                         <span>Engineering Lead, NovaTech</span>
                     </div>
                 </div>
             </div>
+
             <div class="testi-card reveal">
-                <div class="stars">★★★★★</div>
-                <p>"We switched from Zoom. The transcription accuracy is remarkable, and action items actually get captured correctly."</p>
+                <div>
+                    <div class="stars">★★★★★</div>
+                    <p class="testi-quote">"We switched from Zoom. The transcription accuracy is remarkable, and action items actually get captured correctly."</p>
+                </div>
                 <div class="testi-author">
-                    <div class="testi-avatar" style="background:#fce8e6;color:#d93025">P</div>
-                    <div>
+                    <div class="testi-av" style="background:#fce8e6;color:#d93025;">P</div>
+                    <div class="testi-meta">
                         <strong>Priya Nair</strong>
                         <span>Operations Manager, Orbit Systems</span>
                     </div>
                 </div>
             </div>
-        </div>
+
+        </div><!-- /testi-grid -->
+
     </div>
 </section>
 
-<!-- FAQ -->
-<section class="faq" id="faq">
+<!-- ============================================================
+     FAQ SECTION (Accordion preserved)
+============================================================ -->
+<section class="faq-section" id="faq">
     <div class="container faq-inner">
+
         <div class="faq-left">
-            <p class="section-eyebrow">FAQ</p>
+            <div class="eyebrow">FAQ</div>
             <h2 class="section-h2 left">Common<br>questions</h2>
-            <p class="section-body left">Can't find the answer? <a href="#contact" class="text-link">Contact us</a></p>
+            <p class="faq-left-contact">Can't find the answer? <a href="#contact">Contact us</a></p>
         </div>
+
         <div class="faq-list">
+
             <div class="faq-item active reveal">
                 <button class="faq-q" aria-expanded="true">
                     Which languages does Connect support?
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 6L8 10L12 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="6 9 12 15 18 9"/>
+                    </svg>
                 </button>
-                <div class="faq-a"><p>Connect supports real-time translation and transcription in 50+ languages, including English, Tamil, Hindi, Spanish, Japanese, French, German, Mandarin, and Arabic. New languages are added regularly.</p></div>
+                <div class="faq-a">
+                    <p>Connect supports real-time translation and transcription in 50+ languages, including English, Tamil, Hindi, Spanish, Japanese, French, German, Mandarin, and Arabic. New languages are added regularly.</p>
+                </div>
             </div>
 
             <div class="faq-item reveal">
                 <button class="faq-q" aria-expanded="false">
                     Is my meeting data secure?
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 6L8 10L12 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="6 9 12 15 18 9"/>
+                    </svg>
                 </button>
-                <div class="faq-a"><p>All meetings are end-to-end encrypted (AES-256). We are SOC 2 Type II certified and GDPR compliant. Your data is never sold or shared, and AI processing happens on encrypted infrastructure.</p></div>
+                <div class="faq-a">
+                    <p>All meetings are end-to-end encrypted (AES-256). We are SOC 2 Type II certified and GDPR compliant. Your data is never sold or shared, and AI processing happens on encrypted infrastructure.</p>
+                </div>
             </div>
 
             <div class="faq-item reveal">
                 <button class="faq-q" aria-expanded="false">
                     Do participants need to install anything?
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 6L8 10L12 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="6 9 12 15 18 9"/>
+                    </svg>
                 </button>
-                <div class="faq-a"><p>No installation required. Anyone can join directly from their browser with a single click. Optional native apps are available for iOS, Android, macOS, and Windows, but they are never required.</p></div>
+                <div class="faq-a">
+                    <p>No installation required. Anyone can join directly from their browser with a single click. Optional native apps are available for iOS, Android, macOS, and Windows, but they are never required.</p>
+                </div>
             </div>
 
             <div class="faq-item reveal">
                 <button class="faq-q" aria-expanded="false">
                     Can I integrate Connect with my calendar?
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 6L8 10L12 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="6 9 12 15 18 9"/>
+                    </svg>
                 </button>
-                <div class="faq-a"><p>Yes. Connect integrates with Google Calendar, Microsoft Outlook, and Apple Calendar. Meetings are added automatically and participants receive smart reminders before each session.</p></div>
+                <div class="faq-a">
+                    <p>Yes. Connect integrates with Google Calendar, Microsoft Outlook, and Apple Calendar. Meetings are added automatically and participants receive smart reminders before each session.</p>
+                </div>
             </div>
 
             <div class="faq-item reveal">
                 <button class="faq-q" aria-expanded="false">
                     How are AI summaries generated?
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 6L8 10L12 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="6 9 12 15 18 9"/>
+                    </svg>
                 </button>
-                <div class="faq-a"><p>Our AI processes the real-time transcript using large language models to extract key decisions, topics, and action items. Summaries arrive within seconds of your meeting ending, with speaker attribution and timestamps.</p></div>
+                <div class="faq-a">
+                    <p>Our AI processes the real-time transcript using large language models to extract key decisions, topics, and action items. Summaries arrive within seconds of your meeting ending, with speaker attribution and timestamps.</p>
+                </div>
             </div>
 
             <div class="faq-item reveal">
                 <button class="faq-q" aria-expanded="false">
                     Can I record meetings?
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 6L8 10L12 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="6 9 12 15 18 9"/>
+                    </svg>
                 </button>
-                <div class="faq-a"><p>Yes. Cloud recordings are available on all paid plans — stored securely, searchable by transcript, and shareable via password-protected link. Local recording is available on all plans.</p></div>
+                <div class="faq-a">
+                    <p>Yes. Cloud recordings are available on all paid plans — stored securely, searchable by transcript, and shareable via password-protected link. Local recording is available on all plans.</p>
+                </div>
             </div>
-        </div>
+
+        </div><!-- /faq-list -->
+
     </div>
 </section>
 
-<!-- CTA -->
-<section class="cta" id="contact">
+<!-- ============================================================
+     FINAL CTA BANNER
+============================================================ -->
+<section class="cta-section" id="contact">
     <div class="container">
-        <div class="cta-box reveal">
+        <div class="cta-banner reveal">
+
+            <div class="cta-icon-badge">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M15 10l4.553-2.069A1 1 0 0 1 21 8.87v6.26a1 1 0 0 1-1.447.899L15 14"/>
+                    <rect x="2" y="6" width="13" height="12" rx="2"/>
+                </svg>
+            </div>
+
             <h2>Ready to try Connect?</h2>
             <p>Free to start — no credit card required.</p>
+
             <div class="cta-btns">
-                <a href="{% url 'signup' %}" class="btn-blue">Start for free</a>
-                <a href="#" class="btn-outline">Schedule a demo</a>
+                <a href="{% url 'signup' %}" class="btn-cta-primary">
+                    Start for free
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M5 12h14M12 5l7 7-7 7"/>
+                    </svg>
+                </a>
+                <a href="#" class="btn-cta-secondary">Schedule a demo</a>
             </div>
+
         </div>
     </div>
 </section>
 
-<!-- FOOTER -->
+<!-- ============================================================
+     FOOTER
+============================================================ -->
 <footer class="footer">
     <div class="container">
+
         <div class="footer-grid">
             <div class="footer-brand">
-                <a href="{% url 'landing' %}" class="logo footer-logo">
-                    <svg width="24" height="24" viewBox="0 0 28 28" fill="none"><rect width="28" height="28" rx="8" fill="#1a73e8"/><path d="M9 9.5L19 14L9 18.5V9.5Z" fill="white"/></svg>
+                <a href="{% url 'landing' %}" class="brand-link">
+                    <div class="brand-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M15 10l4.553-2.069A1 1 0 0 1 21 8.87v6.26a1 1 0 0 1-1.447.899L15 14"/>
+                            <rect x="2" y="6" width="13" height="12" rx="2"/>
+                        </svg>
+                    </div>
                     <span>Connect</span>
                 </a>
-                <p>Video meetings that work for every team, in every language.</p>
+                <p class="footer-brand-p">Video meetings that work for every team, in every language.</p>
+
+                <div class="social-links">
+                    <a href="#" class="social-link" aria-label="LinkedIn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
+                    </a>
+                    <a href="#" class="social-link" aria-label="GitHub">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+                    </a>
+                    <a href="#" class="social-link" aria-label="Twitter">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 3a10.9 10.9 0 0 1-3.14 1.53 4.48 4.48 0 0 0-7.86 3v1A10.66 10.66 0 0 1 3 4s-4 9 5 13a11.64 11.64 0 0 1-7 2c9 5 20 0 20-11.5a4.5 4.5 0 0 0-.08-.83A7.72 7.72 0 0 0 23 3z"/></svg>
+                    </a>
+                    <a href="#" class="social-link" aria-label="YouTube">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z"/><polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02"/></svg>
+                    </a>
+                </div>
             </div>
+
             <div class="footer-col">
                 <h4>Product</h4>
-                <a href="#features">Features</a>
-                <a href="#how-it-works">How it works</a>
-                <a href="#">Pricing</a>
-                <a href="#">Download</a>
+                <ul>
+                    <li><a href="#features">Features</a></li>
+                    <li><a href="#how-it-works">How it works</a></li>
+                    <li><a href="#">Pricing</a></li>
+                    <li><a href="#">Download</a></li>
+                </ul>
             </div>
+
             <div class="footer-col">
                 <h4>Resources</h4>
-                <a href="#">Help Center</a>
-                <a href="#">Blog</a>
-                <a href="#">Status</a>
-                <a href="#">Docs</a>
+                <ul>
+                    <li><a href="#">Help Center</a></li>
+                    <li><a href="#">Blog</a></li>
+                    <li><a href="#">Status</a></li>
+                    <li><a href="#">Docs</a></li>
+                </ul>
             </div>
+
             <div class="footer-col">
                 <h4>Company</h4>
-                <a href="#">About</a>
-                <a href="#contact">Contact</a>
-                <a href="#">Privacy</a>
-                <a href="#">Terms</a>
+                <ul>
+                    <li><a href="#">About</a></li>
+                    <li><a href="#contact">Contact</a></li>
+                    <li><a href="#">Privacy</a></li>
+                    <li><a href="#">Terms</a></li>
+                </ul>
             </div>
         </div>
+
         <div class="footer-bottom">
             <span>© 2026 Connect. All rights reserved.</span>
-            <div>
+            <div class="footer-bottom-links">
                 <a href="#">Privacy</a>
                 <a href="#">Terms</a>
             </div>
         </div>
+
     </div>
 </footer>
 

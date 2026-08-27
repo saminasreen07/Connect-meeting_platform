@@ -1,0 +1,1314 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meetings — Connect</title>
+    <meta name="description" content="Connect Meetings — View and manage all your previous video sessions.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="{% static 'css/app.css' %}">
+    <style>
+        /* ============================================================
+           CONNECT MEETINGS PAGE — STANDALONE DASHBOARD SHELL
+           Reuses app.css design tokens. Desktop: fixed sidebar + main.
+        ============================================================ */
+
+        body { overflow-x: hidden; }
+
+        /* ── SHELL & MAIN CONTAINER ──────────────────────────────── */
+        .db-shell {
+            display: flex;
+            min-height: 100vh;
+            background: var(--bg-app);
+        }
+
+        .db-main {
+            flex: 1;
+            margin-left: 240px;
+            min-width: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center; /* Centers the content area on desktop wide viewports */
+            transition: margin-left var(--transition-normal);
+        }
+
+        .db-content {
+            flex: 1;
+            padding: 2.5rem 3rem 4rem;
+            max-width: 1200px; /* Centered, balanced, utilizing the available right space */
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 1.75rem;
+        }
+
+        /* ── SIDEBAR ────────────────────────────────────────────── */
+        .db-sidebar {
+            width: 240px;
+            flex-shrink: 0;
+            background: #fff;
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            top: 0; left: 0; bottom: 0;
+            z-index: 100;
+            overflow-y: auto;
+            transition: transform var(--transition-normal);
+        }
+
+        .db-sidebar-logo {
+            padding: 1.5rem 1.5rem 1.375rem;
+            border-bottom: 1px solid #f1f5f9;
+            flex-shrink: 0;
+        }
+
+        .db-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.625rem;
+            text-decoration: none;
+        }
+
+        .db-brand-icon {
+            width: 34px;
+            height: 34px;
+            background: var(--primary);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            box-shadow: 0 4px 10px rgba(79, 70, 229, 0.25);
+            transition: transform var(--transition-fast);
+        }
+        .db-brand:hover .db-brand-icon {
+            transform: rotate(-5deg) scale(1.05);
+        }
+        .db-brand-icon svg { width: 18px; height: 18px; color: #fff; }
+
+        .db-brand-name {
+            font-size: 1.2rem;
+            font-weight: 700;
+            letter-spacing: -0.025em;
+            color: var(--text-main);
+        }
+
+        .db-nav {
+            flex: 1;
+            padding: 1.5rem 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.75rem;
+        }
+
+        .db-nav-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .db-nav-group-label {
+            font-size: 0.6875rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            padding: 0 0.75rem;
+            margin-bottom: 0.5rem;
+            opacity: 0.85;
+        }
+
+        .db-nav-link {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.65rem 0.75rem;
+            border-radius: 10px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            text-decoration: none;
+            transition: all var(--transition-fast);
+        }
+        .db-nav-link svg {
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
+            transition: color var(--transition-fast);
+        }
+
+        .db-nav-link:hover {
+            background: #f8fafc;
+            color: var(--text-main);
+        }
+        .db-nav-link:hover svg {
+            color: var(--primary);
+        }
+
+        .db-nav-link.active {
+            background: #f5f3ff;
+            color: var(--primary);
+            font-weight: 600;
+        }
+        .db-nav-link.active svg {
+            color: var(--primary);
+        }
+
+        .db-nav-link.placeholder {
+            opacity: 0.5;
+            cursor: default;
+            pointer-events: none;
+        }
+
+        .db-sidebar-bottom {
+            padding: 1rem 1rem 1.25rem;
+            border-top: 1px solid #f1f5f9;
+            flex-shrink: 0;
+            background: #fff;
+        }
+
+        .db-sidebar-user {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.625rem;
+            border-radius: 10px;
+            margin-bottom: 0.5rem;
+            background: #f8fafc;
+            border: 1px solid #f1f5f9;
+        }
+
+        .db-av {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--primary-light);
+            color: var(--primary);
+            font-size: 0.875rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            border: 1.5px solid #fff;
+            box-shadow: 0 2px 6px rgba(79, 70, 229, 0.1);
+        }
+
+        .db-user-name {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-main);
+            display: block;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .db-user-role-lbl {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            display: block;
+        }
+
+        .db-logout-link {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.65rem 0.75rem;
+            border-radius: 10px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            text-decoration: none;
+            transition: all var(--transition-fast);
+        }
+        .db-logout-link svg { width: 18px; height: 18px; transition: transform var(--transition-fast); }
+        .db-logout-link:hover {
+            background: #fef2f2;
+            color: #dc2626;
+        }
+        .db-logout-link:hover svg {
+            transform: translateX(2px);
+        }
+
+        /* ── MOBILE OVERLAY & HEADER ────────────────────────────── */
+        .db-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.3);
+            z-index: 99;
+            backdrop-filter: blur(4px);
+        }
+        .db-overlay.open { display: block; }
+
+        .db-mob-hdr {
+            display: none;
+            position: sticky;
+            top: 0;
+            width: 100%;
+            height: 64px;
+            background: #fff;
+            border-bottom: 1px solid var(--border-color);
+            z-index: 50;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 1.25rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+        }
+
+        .db-hamburger {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: none;
+            border: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--text-main);
+            transition: all var(--transition-fast);
+            flex-shrink: 0;
+        }
+        .db-hamburger:hover {
+            background: #f8fafc;
+            border-color: #cbd5e1;
+        }
+        .db-hamburger svg { width: 20px; height: 20px; }
+
+        .db-mob-av {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--primary-light);
+            color: var(--primary);
+            font-size: 0.875rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            border: 1px solid var(--border-color);
+        }
+
+        /* ── PAGE HEADER ────────────────────────────────────────── */
+        .db-page-hdr {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid #e2e8f0;
+            margin-bottom: 0.5rem;
+            gap: 1.5rem;
+        }
+
+        .db-page-title {
+            font-size: 1.875rem;
+            font-weight: 700;
+            color: var(--text-main);
+            letter-spacing: -0.03em;
+            margin-bottom: 0.375rem;
+            line-height: 1.2;
+        }
+
+        .db-subgreet {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            margin: 0;
+        }
+
+        /* Start Meeting shortcut button */
+        .db-hdr-btn {
+            display: inline-flex !important;
+            align-items: center;
+            gap: 0.5rem;
+            width: auto !important;
+            padding: 0.65rem 1.25rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            border-radius: 10px;
+            background: var(--primary);
+            color: #fff;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            box-shadow: 0 4px 10px rgba(79, 70, 229, 0.15);
+            white-space: nowrap;
+        }
+        .db-hdr-btn:hover {
+            background: var(--primary-hover);
+            box-shadow: 0 6px 16px rgba(79, 70, 229, 0.25);
+        }
+        .db-hdr-btn svg { width: 16px; height: 16px; transition: transform var(--transition-fast); }
+        .db-hdr-btn:hover svg { transform: translateX(2px); }
+
+        /* ── SEARCH & FILTER ROW ────────────────────────────────── */
+        .db-filter-row {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            width: 100%;
+        }
+
+        .db-search-wrapper {
+            position: relative;
+            flex: 1;
+        }
+
+        .db-search-icon {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 18px;
+            height: 18px;
+            color: #94a3b8;
+            pointer-events: none;
+        }
+
+        .db-search-input {
+            width: 100% !important;
+            height: 44px !important;
+            padding: 0 1rem 0 2.75rem !important;
+            font-size: 0.875rem !important;
+            border-radius: 12px !important;
+            border: 1.5px solid var(--border-color) !important;
+            background: #fff !important;
+            transition: all var(--transition-fast) !important;
+            box-shadow: none !important;
+        }
+        .db-search-input:focus {
+            border-color: var(--primary) !important;
+            box-shadow: 0 0 0 3.5px rgba(79, 70, 229, 0.1) !important;
+            background: #fff !important;
+        }
+
+        .db-select-wrapper {
+            position: relative;
+            min-width: 180px;
+        }
+
+        .db-filter-icon {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 16px;
+            height: 16px;
+            color: #94a3b8;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .db-select-filter {
+            width: 100%;
+            height: 44px;
+            padding: 0 2.25rem 0 2.5rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-main);
+            border-radius: 12px;
+            border: 1.5px solid var(--border-color);
+            background: #fff;
+            cursor: pointer;
+            outline: none;
+            appearance: none;
+            -webkit-appearance: none;
+            transition: all var(--transition-fast);
+        }
+        .db-select-filter:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3.5px rgba(79, 70, 229, 0.1);
+        }
+        .db-select-wrapper::after {
+            content: "";
+            position: absolute;
+            right: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 8px;
+            height: 8px;
+            border-right: 2px solid #94a3b8;
+            border-bottom: 2px solid #94a3b8;
+            transform: translateY(-70%) rotate(45deg);
+            pointer-events: none;
+        }
+
+        /* ── MEETINGS LIST CARD ─────────────────────────────────── */
+        .db-meetings-card {
+            background: #fff;
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.02);
+            width: 100%;
+        }
+
+        .db-card-hdr {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1.375rem 1.75rem;
+            border-bottom: 1px solid var(--border-color);
+            background: #fff;
+        }
+
+        .db-card-title {
+            font-size: 1.125rem;
+            font-weight: 700;
+            color: var(--text-main);
+            margin: 0;
+            letter-spacing: -0.02em;
+        }
+
+        /* Row Layout */
+        .db-mtg-row {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            padding: 1.125rem 1.75rem;
+            border-bottom: 1px solid #f1f5f9;
+            transition: background-color var(--transition-fast);
+        }
+        .db-mtg-row:last-child { border-bottom: none; }
+        .db-mtg-row:hover {
+            background-color: #f8fafc;
+        }
+
+        .db-mtg-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: var(--primary-light);
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .db-mtg-icon svg { width: 20px; height: 20px; }
+
+        .db-mtg-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .db-mtg-name {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text-main);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 0.125rem;
+        }
+
+        .db-mtg-code {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace;
+            letter-spacing: 0.02em;
+            background: #f1f5f9;
+            padding: 0.125rem 0.375rem;
+            border-radius: 4px;
+            display: inline-block;
+        }
+
+        .db-mtg-date {
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            white-space: nowrap;
+            flex-shrink: 0;
+            min-width: 140px;
+        }
+        .db-mtg-date svg { width: 16px; height: 16px; color: #94a3b8; }
+
+        .db-role-pill {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.75rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            border-radius: 9999px;
+            white-space: nowrap;
+            flex-shrink: 0;
+            min-width: 80px;
+            justify-content: center;
+        }
+        .db-role-active      { background: #d1fae5; color: #065f46; }
+        .db-role-ended       { background: #f1f5f9; color: #6b7280; }
+
+        .db-role-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.75rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            border-radius: 9999px;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        .db-role-badge-host {
+            background: #eef2ff;
+            color: var(--primary);
+            border: 1px solid rgba(79, 70, 229, 0.15);
+        }
+        .db-role-badge-participant {
+            background: #f8fafc;
+            color: var(--text-muted);
+            border: 1px solid var(--border-color);
+        }
+
+        /* Actions block with 3-dot dropdown */
+        .db-mtg-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            position: relative;
+        }
+
+        .db-details-link {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--primary);
+            text-decoration: none;
+            white-space: nowrap;
+            flex-shrink: 0;
+            padding: 0.4rem 0.8rem;
+            border-radius: 8px;
+            transition: all var(--transition-fast);
+        }
+        .db-details-link:hover {
+            color: var(--primary-hover);
+            background: var(--primary-light);
+        }
+
+        .db-action-dropdown-wrap {
+            position: relative;
+            display: inline-block;
+        }
+
+        .db-action-dropdown-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: none;
+            border: 1px solid transparent;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+        .db-action-dropdown-btn:hover, .db-action-dropdown-wrap.open .db-action-dropdown-btn {
+            background: #f1f5f9;
+            color: var(--text-main);
+            border-color: var(--border-color);
+        }
+        .db-action-dropdown-btn svg { width: 16px; height: 16px; }
+
+        .db-action-dropdown-menu {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: 100%;
+            margin-top: 0.375rem;
+            background: #fff;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
+            z-index: 50;
+            min-width: 160px;
+            overflow: hidden;
+            animation: popIn 150ms cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes popIn {
+            from { opacity: 0; transform: scale(0.95) translateY(-5px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        .db-action-dropdown-wrap.open .db-action-dropdown-menu {
+            display: block;
+        }
+
+        .db-action-dropdown-item {
+            width: 100%;
+            padding: 0.65rem 0.875rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-main);
+            background: none;
+            border: none;
+            text-align: left;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: background var(--transition-fast);
+        }
+        .db-action-dropdown-item svg { width: 16px; height: 16px; color: #94a3b8; }
+        .db-action-dropdown-item:hover { background: #f8fafc; }
+
+        .db-action-dropdown-item.delete-btn { color: #ef4444; }
+        .db-action-dropdown-item.delete-btn svg { color: #f87171; }
+        .db-action-dropdown-item.delete-btn:hover { background: #fef2f2; }
+
+        /* ── MODAL OVERLAY & CARD ──────────────────────────────── */
+        .db-modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.4);
+            backdrop-filter: blur(4px);
+            z-index: 200;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 200ms ease;
+        }
+        
+        .db-modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .db-modal-card {
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            border: 1px solid var(--border-color);
+            padding: 1.75rem;
+            max-width: 440px;
+            width: calc(100% - 2rem);
+            text-align: center;
+            transform: scale(0.95);
+            transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        
+        .db-modal-overlay.active .db-modal-card {
+            transform: scale(1);
+        }
+
+        .db-modal-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-top: 0;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.02em;
+        }
+
+        .db-modal-message {
+            font-size: 0.9375rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+            margin-bottom: 1.75rem;
+        }
+
+        .db-modal-actions {
+            display: flex;
+            gap: 0.75rem;
+            justify-content: center;
+        }
+
+        .db-modal-btn {
+            height: 40px;
+            padding: 0 1.25rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            border-radius: 10px;
+            border: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: all var(--transition-fast);
+        }
+
+        .db-modal-btn-cancel {
+            background: #f1f5f9;
+            color: var(--text-muted);
+            border: 1px solid var(--border-color);
+        }
+        .db-modal-btn-cancel:hover {
+            background: #e2e8f0;
+            color: var(--text-main);
+        }
+
+        .db-modal-btn-delete {
+            background: #ef4444;
+            color: #fff;
+            box-shadow: 0 4px 10px rgba(239, 68, 68, 0.15);
+        }
+        .db-modal-btn-delete:hover {
+            background: #dc2626;
+            box-shadow: 0 6px 16px rgba(239, 68, 68, 0.25);
+        }
+
+        /* ── EMPTY STATE ────────────────────────────────────────── */
+        .db-empty {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            padding: 4.5rem 2rem;
+            width: 100%;
+        }
+
+        .db-empty-icon {
+            width: 64px;
+            height: 64px;
+            border-radius: 16px;
+            background: var(--primary-light);
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.15);
+        }
+        .db-empty-icon svg { width: 30px; height: 30px; }
+
+        .db-empty-title {
+            font-size: 1.125rem;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.02em;
+        }
+
+        .db-empty-desc {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            max-width: 340px;
+            margin-bottom: 1.75rem;
+            line-height: 1.6;
+        }
+
+        .db-empty-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            background: var(--primary);
+            color: #fff;
+            border-radius: 10px;
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: all var(--transition-fast);
+            box-shadow: 0 4px 10px rgba(79, 70, 229, 0.15);
+        }
+        .db-empty-btn:hover {
+            background: var(--primary-hover);
+            box-shadow: 0 6px 16px rgba(79, 70, 229, 0.25);
+        }
+
+        /* ============================================================
+           RESPONSIVE VIEWPORTS
+        ============================================================ */
+
+        /* Tablet ≤ 900px */
+        @media (max-width: 900px) {
+            .db-content { padding: 2rem 2rem 3rem; }
+        }
+
+        /* Mobile ≤ 768px */
+        @media (max-width: 768px) {
+            .db-sidebar { transform: translateX(-100%); }
+            .db-sidebar.open {
+                transform: translateX(0);
+                box-shadow: 4px 0 30px rgba(15, 23, 42, 0.15);
+            }
+            .db-mob-hdr { display: flex; }
+            .db-main { margin-left: 0; }
+            .db-content { padding: 1.5rem 1.25rem 2.5rem; gap: 1.25rem; }
+            .db-page-hdr { margin-bottom: 0.5rem; }
+            .db-page-title { font-size: 1.5rem; }
+            .db-filter-row { flex-direction: column; align-items: stretch; gap: 0.75rem; }
+            .db-select-wrapper { min-width: 0; width: 100%; }
+            .db-mtg-date { display: none; }
+        }
+
+        /* Small mobile ≤ 480px */
+        @media (max-width: 480px) {
+            .db-content { padding: 1.25rem 1rem 2rem; gap: 1rem; }
+            .db-page-title { font-size: 1.375rem; }
+            .db-mtg-row {
+                flex-direction: column;
+                align-items: flex-start;
+                padding: 1.25rem 1.125rem;
+                gap: 0.875rem;
+            }
+            .db-mtg-icon { width: 36px; height: 36px; border-radius: 8px; }
+            .db-mtg-icon svg { width: 18px; height: 18px; }
+            .db-role-pill { display: none; }
+            .db-mtg-actions { width: 100%; justify-content: space-between; border-top: 1px solid #f1f5f9; padding-top: 0.75rem; }
+            .db-details-link { padding: 0.4rem 0; }
+            .db-meetings-card { border-radius: 14px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="db-shell">
+
+    <!-- ══════════════════════════════════════════════════════
+         SIDEBAR
+    ══════════════════════════════════════════════════════ -->
+    <aside class="db-sidebar" id="dbSidebar">
+        <!-- Logo -->
+        <div class="db-sidebar-logo">
+            <a href="{% url 'dashboard' %}" class="db-brand">
+                <div class="db-brand-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M15 10l4.553-2.069A1 1 0 0 1 21 8.87v6.26a1 1 0 0 1-1.447.899L15 14"/>
+                        <rect x="2" y="6" width="13" height="12" rx="2"/>
+                    </svg>
+                </div>
+                <span class="db-brand-name">Connect</span>
+            </a>
+        </div>
+
+        <!-- Nav -->
+        <nav class="db-nav">
+            <div class="db-nav-group">
+                <div class="db-nav-group-label">Workspace</div>
+                <a href="{% url 'dashboard' %}" class="db-nav-link">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="7" height="7" rx="1"/>
+                        <rect x="14" y="3" width="7" height="7" rx="1"/>
+                        <rect x="3" y="14" width="7" height="7" rx="1"/>
+                        <rect x="14" y="14" width="7" height="7" rx="1"/>
+                    </svg>
+                    Dashboard
+                </a>
+                <a href="{% url 'meeting_history' %}" class="db-nav-link active">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="4" width="18" height="18" rx="2"/>
+                        <line x1="16" y1="2" x2="16" y2="6"/>
+                        <line x1="8" y1="2" x2="8" y2="6"/>
+                        <line x1="3" y1="10" x2="21" y2="10"/>
+                    </svg>
+                    Meetings
+                </a>
+            </div>
+
+            <div class="db-nav-group">
+                <div class="db-nav-group-label">Account</div>
+                <a href="#" class="db-nav-link placeholder" tabindex="-1" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M20 12h-2M6 12H4M17.66 17.66l-1.41-1.41M6.34 17.66l1.41-1.41M12 20v-2M12 4V2"/>
+                    </svg>
+                    Settings
+                </a>
+                <a href="#" class="db-nav-link placeholder" tabindex="-1" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                        <circle cx="12" cy="7" r="4"/>
+                    </svg>
+                    Profile
+                </a>
+            </div>
+
+            <div class="db-nav-group">
+                <div class="db-nav-group-label">Support</div>
+                <a href="#" class="db-nav-link placeholder" tabindex="-1" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+                        <line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                    Help Center
+                </a>
+            </div>
+        </nav>
+
+        <!-- User + Logout -->
+        <div class="db-sidebar-bottom">
+            <div class="db-sidebar-user">
+                <div class="db-av">{{ request.user.username|first|upper }}</div>
+                <div style="min-width:0;">
+                    <span class="db-user-name">{{ request.user.username|title }}</span>
+                    <span class="db-user-role-lbl">{{ request.user.role|title }}</span>
+                </div>
+            </div>
+            <a href="{% url 'logout' %}" class="db-logout-link">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                     stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                    <polyline points="16 17 21 12 16 7"/>
+                    <line x1="21" y1="12" x2="9" y2="12"/>
+                </svg>
+                Log out
+            </a>
+        </div>
+    </aside>
+
+    <!-- Mobile drawer overlay -->
+    <div class="db-overlay" id="dbOverlay"></div>
+
+    <!-- ══════════════════════════════════════════════════════
+         MAIN CONTENT
+    ══════════════════════════════════════════════════════ -->
+    <div class="db-main">
+
+        <!-- Mobile sticky header -->
+        <header class="db-mob-hdr">
+            <button class="db-hamburger" id="dbHamburger" aria-label="Open navigation menu" aria-expanded="false">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <line x1="3" y1="6" x2="21" y2="6"/>
+                    <line x1="3" y1="12" x2="21" y2="12"/>
+                    <line x1="3" y1="18" x2="21" y2="18"/>
+                </svg>
+            </button>
+            <a href="{% url 'dashboard' %}" class="db-brand">
+                <div class="db-brand-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M15 10l4.553-2.069A1 1 0 0 1 21 8.87v6.26a1 1 0 0 1-1.447.899L15 14"/>
+                        <rect x="2" y="6" width="13" height="12" rx="2"/>
+                    </svg>
+                </div>
+                <span class="db-brand-name">Connect</span>
+            </a>
+            <div class="db-mob-av" aria-hidden="true">{{ request.user.username|first|upper }}</div>
+        </header>
+
+        <!-- Scrollable content -->
+        <div class="db-content">
+
+            <!-- ── PAGE HEADER ────────────────────────────────── -->
+            <div class="db-page-hdr">
+                <div>
+                    <h1 class="db-page-title">Meetings</h1>
+                    <p class="db-subgreet">View and manage all your previous meetings.</p>
+                </div>
+                <div>
+                    <a href="{% url 'create_meeting' %}" class="db-hdr-btn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="12" y1="5" x2="12" y2="19"/>
+                            <line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                        Start Meeting
+                    </a>
+                </div>
+            </div>
+
+            <!-- ── SEARCH & FILTER ROW ────────────────────────── -->
+            <div class="db-filter-row">
+                <div class="db-search-wrapper">
+                    <svg class="db-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"/>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                    </svg>
+                    <input type="text" id="dbMtgSearch" class="db-search-input" placeholder="Search meetings..." autocomplete="off">
+                </div>
+                
+                <div class="db-select-wrapper">
+                    <svg class="db-filter-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+                    </svg>
+                    <select id="dbMtgFilter" class="db-select-filter">
+                        <option value="all">All Meetings</option>
+                        <option value="host">Hosted by Me</option>
+                        <option value="participant">Joined by Me</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- ── MEETINGS CARD / LIST ───────────────────────── -->
+            <div class="db-meetings-card">
+                <div class="db-card-hdr">
+                    <h2 class="db-card-title">All Meetings</h2>
+                </div>
+
+                {% if meetings %}
+                    <div id="dbMtgListContainer">
+                    {% for m in meetings %}
+                        <div class="db-mtg-row" 
+                             data-title="{{ m.title|lower }}" 
+                             data-code="{{ m.room_code|lower }}" 
+                             data-role="{% if m.host == request.user %}host{% else %}participant{% endif %}">
+                            
+                            <!-- Left: Video camera icon inside soft lavender square & Title/Code details -->
+                            <div class="db-mtg-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                     stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M15 10l4.553-2.069A1 1 0 0 1 21 8.87v6.26a1 1 0 0 1-1.447.899L15 14"/>
+                                    <rect x="2" y="6" width="13" height="12" rx="2"/>
+                                </svg>
+                            </div>
+
+                            <div class="db-mtg-info">
+                                <div class="db-mtg-name">{{ m.title }}</div>
+                                <div class="db-mtg-code">Code: {{ m.room_code }}</div>
+                            </div>
+
+                            <!-- Middle: Date & Time details -->
+                            <div class="db-mtg-date">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                     stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="3" y="4" width="18" height="18" rx="2"/>
+                                    <line x1="16" y1="2" x2="16" y2="6"/>
+                                    <line x1="8" y1="2" x2="8" y2="6"/>
+                                    <line x1="3" y1="10" x2="21" y2="10"/>
+                                </svg>
+                                {{ m.created_at|date:"M d, Y H:i" }}
+                            </div>
+
+                            <!-- Right: Status & Role Badges -->
+                            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                {% if m.host == request.user %}
+                                    <span class="db-role-badge db-role-badge-host">Host</span>
+                                {% else %}
+                                    <span class="db-role-badge db-role-badge-participant">Participant</span>
+                                {% endif %}
+
+                                {% if m.is_active %}
+                                    <span class="db-role-pill db-role-active">Active</span>
+                                {% else %}
+                                    <span class="db-role-pill db-role-ended">Ended</span>
+                                {% endif %}
+                            </div>
+
+                            <!-- Actions block with 3-dot dropdown menu -->
+                            <div class="db-mtg-actions">
+                                <a href="{% url 'meeting_details' m.room_code %}" class="db-details-link">
+                                    View Details &rarr;
+                                </a>
+
+                                <div class="db-action-dropdown-wrap">
+                                    <button type="button" class="db-action-dropdown-btn" aria-label="Toggle action menu">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <circle cx="12" cy="5" r="1"/>
+                                            <circle cx="12" cy="12" r="1"/>
+                                            <circle cx="12" cy="19" r="1"/>
+                                        </svg>
+                                    </button>
+                                    <div class="db-action-dropdown-menu">
+                                        <a href="{% url 'meeting_details' m.room_code %}" class="db-action-dropdown-item">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                                <circle cx="12" cy="12" r="3"/>
+                                            </svg>
+                                            View Details
+                                        </a>
+                                        {% if m.host == request.user %}
+                                        <button type="button" class="db-action-dropdown-item delete-btn trigger-delete-modal" data-room="{{ m.room_code }}">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <polyline points="3 6 5 6 21 6"/>
+                                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                                <line x1="10" y1="11" x2="10" y2="17"/>
+                                                <line x1="14" y1="11" x2="14" y2="17"/>
+                                            </svg>
+                                            Delete Meeting
+                                        </button>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    {% endfor %}
+                    </div>
+                {% endif %}
+
+                <!-- Client-side No Results Empty State Container -->
+                <div id="dbMtgEmptyState" class="db-empty" style="{% if meetings %}display: none;{% endif %}">
+                    <div class="db-empty-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M15 10l4.553-2.069A1 1 0 0 1 21 8.87v6.26a1 1 0 0 1-1.447.899L15 14"/>
+                            <rect x="2" y="6" width="13" height="12" rx="2"/>
+                        </svg>
+                    </div>
+                    <div class="db-empty-title">No meetings found</div>
+                    <p class="db-empty-desc">Your meetings will appear here once you create or join one, or adjust your query.</p>
+                    <a href="{% url 'create_meeting' %}" class="db-empty-btn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="12" y1="5" x2="12" y2="19"/>
+                            <line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                        Start Meeting
+                    </a>
+                </div>
+
+            </div><!-- /db-meetings-card -->
+
+        </div><!-- /db-content -->
+    </div><!-- /db-main -->
+
+</div><!-- /db-shell -->
+
+<script>
+    // ── Mobile sidebar drawer toggle ────────────────────────────
+    var hamburger = document.getElementById('dbHamburger');
+    var sidebar   = document.getElementById('dbSidebar');
+    var overlay   = document.getElementById('dbOverlay');
+
+    function openSidebar() {
+        sidebar.classList.add('open');
+        overlay.classList.add('open');
+        hamburger.setAttribute('aria-expanded', 'true');
+    }
+    function closeSidebar() {
+        sidebar.classList.remove('open');
+        overlay.classList.remove('open');
+        hamburger.setAttribute('aria-expanded', 'false');
+    }
+
+    if (hamburger && sidebar && overlay) {
+        hamburger.addEventListener('click', function () {
+            sidebar.classList.contains('open') ? closeSidebar() : openSidebar();
+        });
+        overlay.addEventListener('click', closeSidebar);
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') closeSidebar();
+        });
+    }
+
+    // ── Dropdown Actions (Toggle absolute popups) ──────────────
+    document.addEventListener('click', function (e) {
+        var btn = e.target.closest('.db-action-dropdown-btn');
+        var wraps = document.querySelectorAll('.db-action-dropdown-wrap');
+        
+        if (btn) {
+            var currentWrap = btn.closest('.db-action-dropdown-wrap');
+            wraps.forEach(function (w) {
+                if (w !== currentWrap) w.classList.remove('open');
+            });
+            currentWrap.classList.toggle('open');
+            e.stopPropagation();
+        } else {
+            wraps.forEach(function (w) {
+                w.classList.remove('open');
+            });
+        }
+    });
+
+    // ── Client-side search & dropdown filters ──────────────────
+    var searchInput = document.getElementById('dbMtgSearch');
+    var filterSelect = document.getElementById('dbMtgFilter');
+    var rows = document.querySelectorAll('.db-mtg-row');
+    var noResultsEmpty = document.getElementById('dbMtgEmptyState');
+    var cardTitle = document.querySelector('.db-card-title');
+
+    function filterMeetings() {
+        var query = searchInput ? searchInput.value.toLowerCase().trim() : '';
+        var filterVal = filterSelect ? filterSelect.value : 'all';
+        var visibleCount = 0;
+
+        rows.forEach(function (row) {
+            var title = row.getAttribute('data-title') || '';
+            var code = row.getAttribute('data-code') || '';
+            var role = row.getAttribute('data-role') || '';
+            
+            var matchesQuery = title.indexOf(query) !== -1 || code.indexOf(query) !== -1;
+            var matchesFilter = filterVal === 'all' || role === filterVal;
+
+            if (matchesQuery && matchesFilter) {
+                row.style.display = 'flex';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+
+        if (noResultsEmpty) {
+            if (visibleCount === 0) {
+                noResultsEmpty.style.display = 'flex';
+                // Dynamic description update for search query matches
+                if (rows.length > 0) {
+                    var desc = noResultsEmpty.querySelector('.db-empty-desc');
+                    if (desc) desc.textContent = "No past meetings match your search query or filter selection.";
+                    var btn = noResultsEmpty.querySelector('.db-empty-btn');
+                    if (btn) btn.style.display = 'none';
+                }
+            } else {
+                noResultsEmpty.style.display = 'none';
+            }
+        }
+    }
+
+    if (searchInput) searchInput.addEventListener('input', filterMeetings);
+    if (filterSelect) filterSelect.addEventListener('change', filterMeetings);
+
+    // ── Delete Confirmation Modal Logic ───────────────────────
+    var deleteModalOverlay = document.getElementById('deleteModalOverlay');
+    var cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
+    var deleteMeetingForm = document.getElementById('deleteMeetingForm');
+
+    document.addEventListener('click', function (e) {
+        var trigger = e.target.closest('.trigger-delete-modal');
+        if (trigger) {
+            var roomCode = trigger.getAttribute('data-room');
+            if (roomCode && deleteMeetingForm) {
+                // Dynamic target URL formation
+                var urlTemplate = "{% url 'delete_meeting' 'ROOM_CODE_PLACEHOLDER' %}";
+                deleteMeetingForm.action = urlTemplate.replace('ROOM_CODE_PLACEHOLDER', roomCode);
+                if (deleteModalOverlay) {
+                    deleteModalOverlay.classList.add('active');
+                }
+            }
+            e.preventDefault();
+        }
+    });
+
+    function closeDeleteModal() {
+        if (deleteModalOverlay) {
+            deleteModalOverlay.classList.remove('active');
+        }
+    }
+
+    if (cancelDeleteBtn) {
+        cancelDeleteBtn.addEventListener('click', closeDeleteModal);
+    }
+
+    if (deleteModalOverlay) {
+        deleteModalOverlay.addEventListener('click', function (e) {
+            if (e.target === deleteModalOverlay) {
+                closeDeleteModal();
+            }
+        });
+    }
+</script>
+
+<!-- Delete Confirmation Modal -->
+<div class="db-modal-overlay" id="deleteModalOverlay">
+    <div class="db-modal-card">
+        <h3 class="db-modal-title">Delete this meeting?</h3>
+        <p class="db-modal-message">This will permanently remove this meeting from your meeting history. This action cannot be undone.</p>
+        <div class="db-modal-actions">
+            <button type="button" class="db-modal-btn db-modal-btn-cancel" id="cancelDeleteBtn">Cancel</button>
+            <form id="deleteMeetingForm" method="post" style="margin: 0;">
+                {% csrf_token %}
+                <button type="submit" class="db-modal-btn db-modal-btn-delete">Delete Meeting</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

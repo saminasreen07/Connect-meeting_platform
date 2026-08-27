@@ -1,12 +1,432 @@
 {% extends "accounts/base.html" %}
 {% block content %}
-<div class="card">
-    <h2>Join a meeting</h2>
-    <form method="POST">
-        {% csrf_token %}
-        <input type="text" name="room_code" placeholder="Enter room code" style="text-transform:uppercase" />
-        <button type="submit">Join Room</button>
-    </form>
-    <div class="link"><a href="{% url 'dashboard' %}">← Back to dashboard</a></div>
+<div class="setup-container-rel">
+    <!-- Decorative Outline elements (very subtle, non-clickable, responsive) -->
+    <div class="setup-decor decor-camera" aria-hidden="true">
+        <svg viewBox="0 0 24 24">
+            <path d="M15 10l4.553-2.069A1 1 0 0 1 21 8.87v6.26a1 1 0 0 1-1.447.899L15 14"/>
+            <rect x="2" y="6" width="13" height="12" rx="2"/>
+        </svg>
+    </div>
+    <div class="setup-decor decor-mic" aria-hidden="true">
+        <svg viewBox="0 0 24 24">
+            <path d="M12 1v11m0 0a4 4 0 0 0 4-4V5a4 4 0 0 0-8 0v3a4 4 0 0 0 4 4z"/>
+            <path d="M19 10a7 7 0 0 1-14 0M12 20v3M8 23h8"/>
+        </svg>
+    </div>
+    <div class="setup-decor decor-chat" aria-hidden="true">
+        <svg viewBox="0 0 24 24">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        </svg>
+    </div>
+    <div class="setup-decor decor-sparkle" aria-hidden="true">
+        <svg viewBox="0 0 24 24">
+            <path d="M12 3v4M12 17v4M3 12h4M17 12h4M5.636 5.636l2.828 2.828M15.536 15.536l2.828 2.828M5.636 18.364l2.828-2.828M15.536 8.464l2.828-2.828"/>
+        </svg>
+    </div>
+
+    <!-- Approved Main Card (EXACTLY UNCHANGED) -->
+    <div class="premium-card setup-card">
+        <!-- Top Icon: Arrow entering door (Join) -->
+        <div class="setup-icon-container">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+                <polyline points="10 17 15 12 10 7"/>
+                <line x1="15" y1="12" x2="3" y2="12"/>
+            </svg>
+        </div>
+
+        <!-- Title and Subtitle -->
+        <h2 class="setup-title">Join a Meeting</h2>
+        <p class="setup-subtitle">Enter the room code to enter the meeting</p>
+
+        <!-- Form -->
+        <form method="POST" class="setup-form">
+            {% csrf_token %}
+            <div class="form-group">
+                <label class="form-label setup-label" for="room-code">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M12 8l-4 4 4 4M16 12H8"/>
+                    </svg>
+                    Room Code
+                </label>
+                <div class="input-wrapper">
+                    <!-- Key style icon for Code -->
+                    <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                    </svg>
+                    <input 
+                        type="text" 
+                        id="room-code" 
+                        name="room_code" 
+                        placeholder="ENTER ROOM CODE" 
+                        required 
+                        autocomplete="off"
+                        maxlength="20"
+                        style="text-transform:uppercase"
+                    />
+                </div>
+            </div>
+            
+            <button type="submit" class="btn btn-primary setup-submit-btn">
+                Join Room
+                <svg class="btn-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="5" y1="12" x2="19" y2="12"/>
+                    <polyline points="12 5 19 12 12 19"/>
+                </svg>
+            </button>
+        </form>
+
+        <div class="card-divider setup-divider"></div>
+
+        <!-- Back Navigation -->
+        <div class="setup-back">
+            <a href="{% url 'dashboard' %}" class="setup-back-link">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="19" y1="12" x2="5" y2="12"/>
+                    <polyline points="12 19 5 12 12 5"/>
+                </svg>
+                Back to dashboard
+            </a>
+        </div>
+
+        <!-- Supporting claims footer -->
+        <div class="setup-footer-note">
+            Enter the code shared by your meeting host
+        </div>
+    </div>
 </div>
+
+<style>
+    /* ============================================================
+       CONNECT JOIN MEETING PAGE — PREMIUM STYLING
+       Overrides and visual adjustments for the setup panel.
+    ============================================================ */
+
+    /* Surrounding Background Enhancements (radial glows & dot grid) */
+    body {
+        position: relative;
+        background-color: #ffffff !important;
+    }
+
+    /* Ambient glow behind card */
+    body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background: radial-gradient(circle at 50% 50%, rgba(79, 70, 229, 0.035) 0%, rgba(255, 255, 255, 0) 65%);
+        pointer-events: none;
+        z-index: -1;
+    }
+
+    /* Fine dot pattern fading out towards edges */
+    body::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background-image: radial-gradient(rgba(79, 70, 229, 0.15) 1px, transparent 1px);
+        background-size: 24px 24px;
+        pointer-events: none;
+        z-index: -1;
+        mask-image: radial-gradient(circle at 50% 50%, rgba(0,0,0,0.85) 20%, rgba(0,0,0,0) 65%);
+        -webkit-mask-image: radial-gradient(circle at 50% 50%, rgba(0,0,0,0.85) 20%, rgba(0,0,0,0) 65%);
+    }
+
+    /* Container for decorative items positioning */
+    .setup-container-rel {
+        position: relative;
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    /* Decorative svg outline styling */
+    .setup-decor {
+        position: absolute;
+        pointer-events: none;
+        z-index: 0;
+        opacity: 0.1;
+        transition: opacity var(--transition-normal);
+    }
+    .setup-decor svg {
+        width: 100%;
+        height: 100%;
+        stroke: var(--primary);
+        stroke-width: 1.25;
+        fill: none;
+    }
+
+    /* Positioning outlines away from the card */
+    .decor-camera {
+        top: -60px;
+        left: 5%;
+        width: 46px;
+        height: 46px;
+    }
+
+    .decor-mic {
+        bottom: -50px;
+        right: 4%;
+        width: 44px;
+        height: 44px;
+    }
+
+    .decor-chat {
+        bottom: 40px;
+        left: 2%;
+        width: 40px;
+        height: 40px;
+    }
+
+    .decor-sparkle {
+        top: -30px;
+        right: 8%;
+        width: 38px;
+        height: 38px;
+    }
+
+    /* Custom sizing for the card on desktop: 560px max width */
+    .setup-card {
+        max-width: 560px !important;
+        padding: 3rem 2.5rem 2.5rem !important;
+        margin: 0 auto;
+        text-align: center;
+        border: 1px solid var(--border-color) !important;
+        box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.04), 0 5px 15px -5px rgba(0, 0, 0, 0.02) !important;
+        border-radius: 20px !important;
+        background: #fff;
+        z-index: 10;
+        position: relative;
+    }
+
+    /* Icon Container */
+    .setup-icon-container {
+        width: 54px;
+        height: 54px;
+        border-radius: 14px;
+        background: var(--primary-light);
+        color: var(--primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1.5rem;
+        box-shadow: 0 4px 10px rgba(79, 70, 229, 0.12);
+    }
+    .setup-icon-container svg {
+        width: 24px;
+        height: 24px;
+    }
+
+    /* Title & Subtitle styling */
+    .setup-title {
+        font-size: 1.625rem;
+        font-weight: 700;
+        color: var(--text-main);
+        letter-spacing: -0.03em;
+        margin-bottom: 0.375rem;
+        line-height: 1.2;
+    }
+
+    .setup-subtitle {
+        font-size: 0.9375rem;
+        color: var(--text-muted);
+        margin-bottom: 2rem;
+    }
+
+    /* Form and Group alignment */
+    .setup-form {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    .setup-label {
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+        font-size: 0.8125rem !important;
+        font-weight: 700 !important;
+        color: var(--text-muted) !important;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        margin-bottom: 0.625rem !important;
+    }
+    .setup-label svg {
+        width: 14px;
+        height: 14px;
+        color: #94a3b8;
+    }
+
+    /* Input styling with icon */
+    .input-wrapper {
+        position: relative;
+        width: 100%;
+    }
+
+    .input-icon {
+        position: absolute;
+        left: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 18px;
+        height: 18px;
+        color: #94a3b8;
+        pointer-events: none;
+        transition: color var(--transition-fast);
+    }
+
+    .input-wrapper input {
+        height: 48px !important;
+        padding: 0 1rem 0 2.75rem !important;
+        font-size: 0.95rem !important;
+        border-radius: 12px !important;
+        border: 1.5px solid var(--border-color) !important;
+        background: #f8fafc !important;
+        transition: all var(--transition-fast) !important;
+        box-shadow: none !important;
+    }
+
+    .input-wrapper input:focus {
+        background: #fff !important;
+        border-color: var(--primary) !important;
+        box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.12) !important;
+    }
+    .input-wrapper input:focus + .input-icon {
+        color: var(--primary);
+    }
+
+    /* Primary Submit Button */
+    .setup-submit-btn {
+        height: 48px !important;
+        width: 100% !important;
+        font-size: 0.95rem !important;
+        font-weight: 600 !important;
+        border-radius: 12px !important;
+        background: var(--primary) !important;
+        color: #fff !important;
+        box-shadow: 0 4px 12px rgba(79, 70, 229, 0.15) !important;
+        display: inline-flex !important;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        transition: all var(--transition-fast) !important;
+        margin-top: 0.5rem;
+    }
+    .setup-submit-btn:hover {
+        background: var(--primary-hover) !important;
+        box-shadow: 0 6px 18px rgba(79, 70, 229, 0.25) !important;
+    }
+    .setup-submit-btn:active {
+        transform: scale(0.985) !important;
+    }
+    .setup-submit-btn svg.btn-arrow {
+        width: 16px;
+        height: 16px;
+        transition: transform var(--transition-fast);
+    }
+    .setup-submit-btn:hover svg.btn-arrow {
+        transform: translateX(3px);
+    }
+
+    /* Divider styling */
+    .setup-divider {
+        margin: 1.5rem 0 !important;
+    }
+
+    /* Back Navigation Link */
+    .setup-back {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 1.25rem;
+    }
+
+    .setup-back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-decoration: none;
+        transition: all var(--transition-fast);
+        padding: 0.5rem 1rem;
+        border-radius: 10px;
+    }
+    .setup-back-link svg {
+        width: 16px;
+        height: 16px;
+        transition: transform var(--transition-fast);
+    }
+    .setup-back-link:hover {
+        color: var(--text-main);
+        background: #f1f5f9;
+    }
+    .setup-back-link:hover svg {
+        transform: translateX(-3px);
+    }
+
+    /* Subtle Footer claims */
+    .setup-footer-note {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        letter-spacing: 0.02em;
+        opacity: 0.85;
+    }
+
+    /* ============================================================
+       RESPONSIVE DESIGN
+    ============================================================ */
+
+    @media (max-width: 1024px) {
+        .decor-camera { left: 2%; }
+        .decor-mic { right: 1%; }
+        .decor-chat { left: 0%; opacity: 0.05; }
+        .decor-sparkle { right: 4%; opacity: 0.05; }
+    }
+
+    @media (max-width: 900px) {
+        .decor-chat { display: none; }
+        .decor-sparkle { display: none; }
+    }
+
+    @media (max-width: 640px) {
+        .setup-card {
+            padding: 2.25rem 1.5rem 2rem !important;
+            border-radius: 16px !important;
+            box-shadow: none !important;
+            border: none !important;
+            background: transparent;
+        }
+        .setup-title {
+            font-size: 1.5rem;
+        }
+        .setup-subtitle {
+            margin-bottom: 1.5rem;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .setup-decor {
+            display: none !important; /* Hide outline decorations on tablet/mobile */
+        }
+        body::after {
+            display: none !important; /* Hide dot grid background on mobile */
+        }
+    }
+</style>
+
+<script>
+    // ── Auto-uppercase join input on keypress ──────────────────
+    var joinInput = document.getElementById('room-code');
+    if (joinInput) {
+        joinInput.addEventListener('input', function () {
+            var pos = this.selectionStart;
+            this.value = this.value.toUpperCase();
+            this.setSelectionRange(pos, pos);
+        });
+    }
+</script>
 {% endblock %}

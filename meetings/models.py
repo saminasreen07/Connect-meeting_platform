@@ -29,3 +29,19 @@ class Participant(models.Model):
 
     def __str__(self):
         return f"{self.user.username} in {self.meeting.room_code}"
+
+class TranscriptMessage(models.Model):
+    meeting = models.ForeignKey(Meeting, on_delete=models.CASCADE, related_name='transcripts')
+    speaker = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    text = models.TextField()
+    # language kept for backward compatibility (stores user-provided hint, may be inaccurate)
+    language = models.CharField(max_length=10, default='en')
+    # detected_language is what the STT engine (Gladia / Web Speech API) actually detected
+    detected_language = models.CharField(max_length=20, default='', blank=True)
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['timestamp']
+
+    def __str__(self):
+        return f"{self.speaker.username}: {self.text[:30]}"

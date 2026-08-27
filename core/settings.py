@@ -20,13 +20,21 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
 
-DEBUG = True
+DEBUG = os.getenv('DEBUG', 'True').lower() in ('true', '1', 't')
 
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '192.168.1.4', 'maturing-supplier-undertow.ngrok-free.app', 'maturing-supplier-undertow.ngrok-free.dev']
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '192.168.1.4']
+
+if DEBUG:
+    ALLOWED_HOSTS = ['*']
+else:
+    env_allowed_hosts = os.getenv('ALLOWED_HOSTS')
+    if env_allowed_hosts:
+        ALLOWED_HOSTS.extend([h.strip() for h in env_allowed_hosts.split(',')])
 
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -78,12 +86,27 @@ WSGI_APPLICATION = 'core.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+DATABASE_URL = os.getenv('DATABASE_URL')
+if DATABASE_URL:
+    import urllib.parse as urlparse
+    url = urlparse.urlparse(DATABASE_URL)
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': url.path[1:],
+            'USER': url.username,
+            'PASSWORD': url.password,
+            'HOST': url.hostname,
+            'PORT': url.port,
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 
 # Password validation
@@ -128,13 +151,39 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 # Channels (WebSocket)
 ASGI_APPLICATION = 'core.asgi.application'
 
-CHANNEL_LAYERS = {
-    'default': {
-        'BACKEND': 'channels.layers.InMemoryChannelLayer',
-    },
-}
+REDIS_URL = os.getenv('REDIS_URL')
+if REDIS_URL:
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels_redis.core.RedisChannelLayer',
+            'CONFIG': {
+                'hosts': [REDIS_URL],
+            },
+        },
+    }
+else:
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels.layers.InMemoryChannelLayer',
+        },
+    }
 AUTH_USER_MODEL = 'accounts.User'
 CSRF_TRUSTED_ORIGINS = [
-    'https://maturing-supplier-undertow.ngrok-free.dev',
-    'https://maturing-supplier-undertow.ngrok-free.app',
+    'https://*.ngrok-free.app',
+    'https://*.ngrok-free.dev',
 ]
+
+env_csrf_origins = os.getenv('CSRF_TRUSTED_ORIGINS')
+if env_csrf_origins:
+    CSRF_TRUSTED_ORIGINS.extend([o.strip() for o in env_csrf_origins.split(',')])
+else:
+    ngrok_url = os.getenv('NGROK_URL')
+    if ngrok_url:
+        CSRF_TRUSTED_ORIGINS.append(ngrok_url)
+
+LOGIN_URL = 'login'
+
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '')
+GLADIA_API_KEY = os.getenv('GLADIA_API_KEY', '')
+ASSEMBLYAI_API_KEY = os.getenv('ASSEMBLYAI_API_KEY', '')
+OPENAI_API_KEY = os.getenv('OPENAI_API_KEY', '')

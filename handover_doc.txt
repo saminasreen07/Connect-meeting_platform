@@ -1,0 +1,649 @@
+<USER_REQUEST>
+# Project Handover Document
+## AI-Powered Real-Time Video Meeting Platform with Live Translation & Smart Insights
+
+**Internship Task ID:** IN-TA-TPG-1459 - LOGICLOOP
+**Company:** TechPower Global Pvt Ltd
+**Document Purpose:** Full technical handover for continuation by another developer/AI tool (Antigravity)
+
+---
+
+## 1. Project Overview
+
+**Project name:** Connect (working name) — AI-Powered Real-Time Video Meeting Platform
+
+**Purpose:** A web-based video conferencing platform similar to Google Meet/Zoom, with built-in AI features: live transcription, real-time translation, automatic meeting summaries, and meeting insights — solving the problem of multilingual communication gaps and manual note-taking in remote meetings.
+
+**Target users:** Remote/distributed teams needing multilingual meeting support, students/educators for online classes, internal company demo for an internship evaluation.
+
+**Team:** 3 members (SADHANA, NASREEN, and a third member) building this over a 12-week internship timeline, currently at the end of **Week 3** of 12.
+
+---
+
+## 2. Tech Stack Used
+
+| Layer | Technology | Version | Notes |
+|---|---|---|---|
+| Backend framework | Django | 6.0.5 | Main framework, handles routing/ORM/auth/templates |
+| ASGI server | Daphne | 4.2.2 | Required to run WebSockets — `runserver` (WSGI) does NOT support WebSocket, must use Daphne |
+| Real-time layer | Django Channels | 4.3.2 | WebSocket consumer framework |
+| Channel layer | `channels.layers.InMemoryChannelLayer` | built-in | Switched from Redis due to version incompatibility (see Known Issues) |
+| API framework | Django REST Framework | 3.17.1 | Installed, not yet actively used for endpoints |
+| Database | SQLite | built-in (`db.sqlite3`) | Used for development. PostgreSQL (`psycopg2-binary` 2.9.12) installed but NOT yet configured — planned before deployment |
+| WebRTC signaling/media | Browser WebRTC API + **SimplePeer.js** v9.11.1 | — | Peer-to-peer video/audio. Library file is self-hosted at `static/js/simplepeer.min.js` (NOT loaded from CDN — was blocked by Edge tracking prevention) |
+| Background tasks | Celery 5.6.3 + Redis 7.4.0 (python package) | — | Installed for future AI summary generation tasks, NOT yet wired up |
+| Frontend | Vanilla HTML/CSS/JS via Django templates | — | No frontend framework (no React/Vue) — server-rendered templates only |
+| Image handling | Pillow 12.2.0 | — | For potential profile picture uploads (field exists on User model) |
+| Env management | python-dotenv 1.2.2 | — | Reads `SECRET_KEY` etc. from `.env` file |
+| Tunneling (dev only) | ngrok 3.39.6 | — | Used to expose local Daphne server via HTTPS for cross-device/mobile testing (camera/mic require HTTPS) |
+| Local Redis server | Redis for Windows 3.0.504 (Microsoft Archive build) | — | Installed but **incompatible** with `channels-redis` library (see Known Issues) — currently UNUSED, replaced by in-memory channel layer |
+| Version control | Git + GitHub | — | Public repo, all 3 members are collaborators |
+
+**Authentication:** Django's built-in `django.contrib.auth` system, extended with a custom `User` model (`AbstractUser` subclass). No third-party auth provider (no OAuth/social login).
+
+**Hosting/Deployment:** NOT yet deployed. Currently runs only on developer's local Windows machine, exposed temporarily via ngrok for testing. Planned target: Railway or Render (mentioned in roadmap, not yet executed).
+
+**UI libraries:** None — plain CSS written by hand (no Bootstrap/Tailwind in current implementation, despite frontend-design conventions being discussed generally).
+
+**State management:** None (no SPA). Each page is a full Django template render. Real-time state (room participants, signaling) is managed via global Python dict in the WebSocket consumer (`room_members`) plus client-side JS objects (`peers`, `localStream`).
+
+**Third-party services/APIs used:** None integrated yet. Planned but not implemented: Claude API/OpenAI API (for AI summaries), Web Speech API (browser-native, for transcription), LibreTranslate (for translation).
+
+---
+
+## 3. Folder Structure
+
+```
+meeting_platform_output/                  ← project root (also venv lives here)
+│
+├── venv/                                  ← Python virtual environment (not committed)
+├── ngrok.exe                              ← ngrok binary, kept in project root for convenience
+├── db.sqlite3                             ← SQLite database file
+├── manage.py                              ← Django entry point for all CLI commands
+├── requirements.txt                       ← pinned dependency list
+│
+├── core/                                  ← Django project config (the "project" in Django terms)
+│   ├── settings.py                        ← all configuration: INSTALLED_APPS, DB, static, channels, CSRF_TRUSTED_ORIGINS, ALLOWED_HOSTS
+│   ├── urls.py                            ← root URL routing, includes app urls + serves static() in dev
+│   ├── asgi.py                            ← ASGI entry point — wires HTTP + WebSocket routing together (CRITICAL FILE for real-time features)
+│   └── wsgi.py                            ← unused in practice (we run via Daphne, not WSGI)
+│
+├── accounts/                              ← user auth app
+│   ├── models.py                          ← custom `User` model (AbstractUser + role field)
+│   ├── forms.py                           ← SignupForm, LoginForm
+│   ├── views.py                           ← signup_view, login_view, logout_view, dashboard_view
+│   └── urls.py                            ← /accounts/signup/, /accounts/login/, /accounts/logout/, /accounts/dashboard/
+│
+├── meetings/                              ← core meeting/room app (most complex app)
+│   ├── models.py                          ← `Meeting` and `Participant` models
+│   ├── views.py                           ← create_meeting, join_meeting, meeting_room, end_meeting, leave_meeting
+│   ├── urls.py                            ← /meetings/create/, /meetings/join/, /meetings/room/<room_code>/, etc.
+│   ├── routing.py                         ← WebSocket URL routing — `ws/meeting/<room_code>/`
+│   └── consumers.py                       ← `MeetingConsumer` — handles WebSocket signaling, room membership tracking, chat (NEW)
+│
+├── chat/                                  ← chat app (Week 4, IN PROGRESS — see Pending Features)
+│   └── models.py                          ← `ChatMessage` model (being added in current session)
+│
+├── ai_insights/                           ← scaffolded but EMPTY — no models/views built yet
+│
+├── templates/
+│   ├── accounts/
+│   │   ├── base.html                      ← base template for auth pages (centered card layout, NOT used by room.html anymore)
+│   │   ├── signup.html
+│   │   ├── login.html
+│   │   └── dashboard.html                 ← shows Start Meeting / Join with Code buttons
+│   ├── meetings/
+│   │   ├── base_room.html                 ← separate minimal base template just for the room page (full-screen layout, no centering)
+│   │   ├── create_meeting.html
+│   │   ├── join_meeting.html
+│   │   └── room.html                      ← THE most complex template — full WebRTC + chat UI + JS logic lives here
+│   └── landing/
+│       └── index.html                     ← public landing page (built separately, has its own CSS/JS files)
+│
+├── static/
+│   ├── css/                               ← landing page CSS
+│   └── js/
+│       ├── landing.js
+│       └── simplepeer.min.js              ← self-hosted WebRTC library (99KB, downloaded manually due to CDN blocking issue)
+│
+└── staticfiles/                           ← output of `collectstatic` (160 files), used for serving via STATIC_ROOT
+```
+
+**Entry points:**
+- `manage.py runserver` → NOT used for this project (WebSockets won't work)
+- `python -m daphne -b 0.0.0.0 -p 8000 core.asgi:application` → **the actual way the app is run**
+- `core/asgi.py` → wires together HTTP (Django views) and WebSocket (Channels consumer) traffic
+
+---
+
+## 4. Features Completed
+
+| Feature | Status | Notes |
+|---|---|---|
+| User signup/login/logout | ✅ Fully working | Custom User model with `role` field (host/participant) |
+| Role-based field on user (host/participant) | ✅ Fully working | Field exists and is set at signup, but no permission logic enforces it anywhere yet beyond display |
+| Dashboard page | ✅ Fully working | Shows username, role badge, Start Meeting / Join with Code buttons |
+| Create meeting (generates unique room code) | ✅ Fully working | Uses `uuid.uuid4().hex[:10].upper()` |
+| Join meeting via room code | ✅ Fully working | |
+| Participant tracking in DB (joined_at, left_at, is_active) | ✅ Fully working | `Participant` model updates correctly on join/leave/end |
+| End meeting (host only) / Leave meeting (participant) | ✅ Fully working | |
+| Real-time video calling (WebRTC, multi-user) | ✅ Fully working (after extensive debugging) | Tested successfully across laptop (Edge/Chrome) and Android phone via ngrok |
+| Mute/unmute microphone | ✅ Fully working | |
+| Camera on/off toggle | ✅ Fully working | |
+| Screen sharing | ✅ Working on desktop only | Disabled intentionally on mobile via `isMobile` UA check — `getDisplayMedia` is not supported on mobile browsers, this is expected/correct, not a bug |
+| Live participant count display | ✅ Fully working | |
+| Cross-device testing via ngrok | ✅ Fully working | Required for camera/mic permissions (HTTPS-only browser restriction) |
+| WebSocket signaling server (Django Channels) | ✅ Fully working | Uses in-memory channel layer; tracks room members in a Python dict to notify new joiners of existing participants |
+| Landing page (marketing/public page) | ✅ Built, not deeply tested | Has hero, features, how-it-works sections per earlier planning; actual implementation details of this page were not reviewed file-by-file in this conversation |
+| Static file serving in dev | ✅ Fully working | Required explicit `STATIC_ROOT`, `STATICFILES_DIRS`, and `static()` URL pattern in `core/urls.py` to work correctly with Daphne |
+| Real-time text chat in meeting room | 🟡 Partially working / IN PROGRESS | Code was being added in the current session (ChatMessage model, consumer chat handling, room.html chat panel UI/JS) — **not yet confirmed tested by the user**. This is the most recent unfinished work. |
+| Live transcription | ❌ Not started | Planned for Week 7 |
+| Real-time translation | ❌ Not started | Planned for Week 8 |
+| AI meeting summary | ❌ Not started | Planned for Week 9 |
+| Meeting insights (speaking time, engagement) | ❌ Not started | Planned for Week 10 |
+| Meeting recording/playback | ❌ Not started | Optional feature |
+| AI assistant (Q&A on transcript) | ❌ Not started | Optional feature |
+| UI polish / landing page final design | ❌ Not started | Planned for Week 11 |
+| Production deployment | ❌ Not started | Planned for Week 12 |
+
+---
+
+## 5. Admin CMS Implementation
+
+**Status: Not implemented.** Django's default `/admin/` is registered in `core/urls.py` (`path('admin/', admin.site.urls)`) but:
+- No custom `ModelAdmin` classes have been written for `User`, `Meeting`, `Participant`, or `ChatMessage`
+- No superuser has been confirmed created (no `createsuperuser` command was run in the conversation)
+- No content-management capability beyond Django's default raw model admin (which isn't even registered for the custom models — `accounts/admin.py`, `meetings/admin.py` still contain Django's default empty boilerplate)
+
+**To enable basic admin access**, the next developer needs to:
+1. Run `python manage.py createsuperuser`
+2. Register models in each app's `admin.py`, e.g.:
+   ```python
+   from django.contrib import admin
+   from .models import Meeting, Participant
+   admin.site.register(Meeting)
+   admin.site.register(Participant)
+   ```
+
+No admin roles/permissions beyond Django defaults (`is_staff`, `is_superuser`) exist.
+
+---
+
+## 6. Authentication & Authorization
+
+**Login/signup flow:**
+- `accounts/forms.py` defines `SignupForm` (extends `UserCreationForm`, adds `email` and `role` fields) and `LoginForm` (extends `AuthenticationForm`, no customization)
+- `accounts/views.py`:
+  - `signup_view` — creates user, logs them in immediately, redirects to `dashboard`
+  - `login_view` — standard Django auth, redirects to `dashboard`
+  - `logout_view` — logs out, redirects to `login`
+  - `dashboard_view` — decorated with `@login_required`
+
+**Protected routes:** All `meetings/views.py` view functions (`create_meeting`, `join_meeting`, `meeting_room`, `end_meeting`, `leave_meeting`) are decorated with `@login_required`. Unauthenticated users are redirected to Django's default login URL.
+
+**WebSocket authentication:** `core/asgi.py` wraps the WebSocket router in `AuthMiddlewareStack`, so `self.scope['user']` is available inside `MeetingConsumer` and reflects the logged-in Django session user. This is how chat messages and join/leave events are attributed to the correct username.
+
+**Role-based access logic:** Minimal. The `role` field exists on `User` (`host` / `participant` choices) and is displayed on the dashboard, but the actual host/participant distinction in meetings is determined separately and independently by `meeting.host == request.user` (i.e., whoever created the Meeting row is the host of THAT meeting — this is NOT the same as the global `User.role` field). This is an important architectural nuance: **a user's account-level `role` field and their per-meeting host status are two separate, unconnected concepts.** This may confuse the next developer if not clarified — the `User.role` field is currently cosmetic/unused for actual permission checks.
+
+---
+
+## 7. Database Schema
+
+### `accounts.User` (extends `AbstractUser`)
+| Field | Type | Notes |
+|---|---|---|
+| (inherited) username, email, password, etc. | — | Standard Django fields |
+| `role` | CharField, choices=('host','participant'), default='participant' | Set at signup, NOT used for meeting-level permission checks |
+| `profile_picture` | ImageField, upload_to='profiles/', blank/null | Field exists, no upload UI built yet |
+
+`AUTH_USER_MODEL = 'accounts.User'` is set in `core/settings.py`.
+
+### `meetings.Meeting`
+| Field | Type | Notes |
+|---|---|---|
+| `room_code` | CharField(20), unique | Auto-generated via `uuid.uuid4().hex[:10].upper()` in overridden `save()` |
+| `title` | CharField(200), default='Untitled Meeting' | |
+| `host` | ForeignKey(User), related_name='hosted_meetings' | |
+| `created_at` | DateTimeField, auto_now_add | |
+| `started_at` | DateTimeField, null/blank | Set when meeting is created |
+| `ended_at` | DateTimeField, null/blank | Set when host ends meeting |
+| `is_active` | BooleanField, default=True | Set False on end_meeting |
+
+### `meetings.Participant`
+| Field | Type | Notes |
+|---|---|---|
+| `meeting` | ForeignKey(Meeting), related_name='participants' | |
+| `user` | ForeignKey(User), related_name='participations' | |
+| `joined_at` | DateTimeField, auto_now_add | |
+| `left_at` | DateTimeField, null/blank | |
+| `is_active` | BooleanField, default=True | |
+
+### `chat.ChatMessage` (NEW — added in current session, migration not yet confirmed run)
+| Field | Type | Notes |
+|---|---|---|
+| `meeting` | ForeignKey(Meeting), related_name='chat_messages' | |
+| `sender` | ForeignKey(User) | |
+| `message` | TextField | |
+| `timestamp` | DateTimeField, auto_now_add | |
+| Meta ordering | `['timestamp']` | |
+
+**Relationships summary:**
+- `User` 1—N `Meeting` (as host)
+- `User` 1—N `Participant` (as participations)
+- `Meeting` 1—N `Participant`
+- `Meeting` 1—N `ChatMessage`
+- `User` 1—N `ChatMessage` (as sender)
+
+**ai_insights app:** No models defined yet — completely empty scaffold.
+
+**Important — pending migration:** The `chat.ChatMessage` model was written in this session but the commands `makemigrations chat` and `migrate` were given to the user as instructions — **it is not confirmed whether these were actually run successfully before the conversation ended.** The next developer/AI MUST verify this first, or chat will fail with "no such table" errors (this exact error pattern occurred twice before in this project's history with the `accounts.User` model).
+
+---
+
+## 8. API Documentation
+
+There is **no formal REST API** (despite `djangorestframework` being installed) — all interaction is via standard Django views returning HTML, plus one WebSocket endpoint. No `serializers.py` or DRF `APIView`/`ViewSet` classes exist anywhere in the project.
+
+### HTTP Routes
+
+| Method | URL | View | Auth required | Description |
+|---|---|---|---|---|
+| GET/POST | `/accounts/signup/` | `signup_view` | No | Render/process signup form |
+| GET/POST | `/accounts/login/` | `login_view` | No | Render/process login form |
+| GET | `/accounts/logout/` | `logout_view` | Yes | Logs out, redirects to login |
+| GET | `/accounts/dashboard/` | `dashboard_view` | Yes | Dashboard page |
+| GET/POST | `/meetings/create/` | `create_meeting` | Yes | Creates Meeting + Participant, redirects to room |
+| GET/POST | `/meetings/join/` | `join_meeting` | Yes | Looks up Meeting by room_code, creates Participant, redirects to room |
+| GET | `/meetings/room/<room_code>/` | `meeting_room` | Yes | Renders the room page with participants + chat history |
+| GET | `/meetings/end/<room_code>/` | `end_meeting` | Yes (host only via queryset filter) | Marks meeting inactive, deactivates all participants |
+| GET | `/meetings/leave/<room_code>/` | `leave_meeting` | Yes | Deactivates that user's Participant row |
+| GET | `/admin/` | Django admin | Yes (staff) | Default Django admin, models not registered |
+| GET | `/` | `TemplateView` | No | Landing page |
+| GET | `/static/...` | static() | No | Static files served via Django in dev mode |
+
+### WebSocket Endpoint
+
+`ws(s)://<host>/ws/meeting/<room_code>/` → handled by `meetings.consumers.MeetingConsumer`
+
+**Client → Server message types:**
+```json
+{ "type": "signal", "target": "<channel_name>", "signal": { ... SDP/ICE data ... } }
+{ "type": "chat", "message": "<text>" }
+```
+
+**Server → Client message types:**
+```json
+{ "type": "existing-members", "members": [ { "channel": "...", "user": "..." }, ... ] }
+{ "type": "user-joined", "user": "...", "channel": "..." }
+{ "type": "user-left", "user": "...", "channel": "..." }
+{ "type": "signal", "sender_channel": "...", "sender": "...", "signal": { ... }, "target": "..." }
+{ "type": "chat", "message": "...", "sender": "..." }
+```
+
+No authentication token is passed explicitly over the WebSocket — auth relies on the Django session cookie being valid at connection time (via `AuthMiddlewareStack`).
+
+---
+
+## 9. Deployment Details
+
+**Current state: NOT deployed anywhere.** Runs only on the developer's local Windows 11 machine.
+
+**Environment variables required** (`.env` file in project root):
+```
+SECRET_KEY=<django secret key>
+DEBUG=True
+```
+Read via `python-dotenv` (`load_dotenv()`) at the top of `core/settings.py`.
+
+**Additional settings.py values that would need attention for deployment:**
+- `ALLOWED_HOSTS` — currently contains hardcoded dev/ngrok values: `['127.0.0.1', 'localhost', '192.168.1.4', 'maturing-supplier-undertow.ngrok-free.app', 'maturing-supplier-undertow.ngrok-free.dev']` — these ngrok subdomains are SESSION-SPECIFIC and change every time ngrok restarts on the free tier. **This must be cleaned up before any real deployment.**
+- `CSRF_TRUSTED_ORIGINS` — same issue, contains temporary ngrok URLs
+- `STATIC_URL = '/static/'`, `STATICFILES_DIRS = [BASE_DIR / 'static']`, `STATIC_ROOT = BASE_DIR / 'staticfiles'` — configured and working
+- `CHANNEL_LAYERS` — currently `InMemoryChannelLayer` — **this will NOT work in a multi-process/multi-server production deployment.** Must be switched to `channels_redis.core.RedisChannelLayer` pointed at a working Redis 6.2+ instance before scaling beyond a single dev process.
+- Database is still SQLite — must migrate to PostgreSQL before deployment (psycopg2-binary is already installed in requirements.txt for this purpose)
+
+**Build commands:**
+```bash
+pip install -r requirements.txt
+python manage.py migrate
+python manage.py collectstatic --noinput
+```
+
+**Run commands (current/dev mode):**
+```bash
+.\venv\Scripts\python.exe -m daphne -b 0.0.0.0 -p 8000 core.asgi:application
+```
+(Note: must use Daphne, NOT `manage.py runserver`, because WebSockets require an ASGI server.)
+
+**Deployment steps:** Not yet planned/executed. Roadmap mentions Railway or Render as target platforms (chosen for free-tier support of Django + Redis + PostgreSQL) but no actual deployment configuration (Procfile, render.yaml, Dockerfile, etc.) has been created.
+
+---
+
+## 10. Pending Features / TODO
+
+| Priority | Feature | Notes |
+|---|---|---|
+| **High** | Confirm chat feature (Week 4) is fully working end-to-end | Code was written this session but not confirmed tested — verify `makemigrations chat` + `migrate` ran successfully, verify chat panel UI renders and messages send/receive live across 2 devices |
+| **High** | Fix `ALLOWED_HOSTS`/`CSRF_TRUSTED_ORIGINS` ngrok URL churn | Every ngrok restart changes the URL; currently requires manual settings.py edits each session — consider `ngrok_url = os.getenv(...)` pattern or a wildcard dev-only setting |
+| **High** | Switch CHANNEL_LAYERS to Redis-backed before any multi-worker deployment | InMemoryChannelLayer only works for single-process dev server |
+| **Medium** | Live transcription (Web Speech API) | Planned Week 7 — not started |
+| **Medium** | Real-time translation (LibreTranslate or similar) | Planned Week 8 — not started |
+| **Medium** | AI meeting summary generation (Claude/OpenAI API) | Planned Week 9 — Celery is installed for this purpose but not configured |
+| **Medium** | Meeting insights (speaking time tracking, engagement metrics) | Planned Week 10 — not started |
+| **Medium** | Switch SQLite → PostgreSQL | Required before production |
+| **Medium** | Register Django admin models | Needed for any content management |
+| **Low** | Participant panel improvements / better dashboard sections (recent meetings, AI insights snapshot, stats) | Discussed conceptually, not implemented |
+| **Low** | Landing page final polish (hero, features, how-it-works, team, footer sections) | Conceptually planned in detail, implementation status of actual landing page file not verified line-by-line in this handover |
+| **Low** | Meeting recording/playback | Optional feature |
+| **Low** | AI assistant (ask questions about the meeting) | Optional feature |
+| **Low** | Sentiment analysis | Optional feature |
+| **Low** | Voice-based (speech-to-speech) translation | Optional feature |
+| **Low** | File sharing during meeting | Optional feature |
+| **Low** | UI/UX overhaul (currently very plain inline CSS) | Planned for Week 11 |
+| **Low** | Production deployment to Railway/Render | Planned for Week 12 |
+
+---
+
+## 11. Known Issues & Bugs
+
+1. **Redis incompatibility (RESOLVED via workaround, not a true fix):** The installed Redis for Windows (version 3.0.504) does not support the `BZPOPMIN` command required by `channels-redis`. This caused WebSocket connections to immediately disconnect with `redis.exceptions.ResponseError: unknown command 'BZPOPMIN'`. **Workaround applied:** switched `CHANNEL_LAYERS` to `InMemoryChannelLayer`, bypassing Redis entirely. **This is NOT production-ready** — a real Redis 6.2+ instance (e.g., via Docker, WSL, or a managed Redis service) is needed for any multi-process deployment.
+
+2. **CDN tracking-prevention blocking SimplePeer.js:** Microsoft Edge's "Tracking Prevention" feature blocked loading `simplepeer.min.js` from `unpkg.com`, breaking all WebRTC functionality with no clear error initially. **Fixed** by downloading the library and self-hosting it at `static/js/simplepeer.min.js`.
+
+3. **STATIC_URL missing leading slash:** `STATIC_URL = 'static/'` (without leading `/`) caused static files to be served with wrong MIME type (`text/html` instead of `application/javascript`) through ngrok, causing `Refused to execute script` errors. **Fixed** by changing to `STATIC_URL = '/static/'` and adding explicit `static()` pattern to `core/urls.py`.
+
+4. **base.html layout breaking the room page:** The shared `templates/accounts/base.html` has `body { display:flex; justify-content:center; align-items:center }` styling meant for centered auth-form cards. This broke the full-screen video grid layout when `room.html` extended it. **Fixed** by creating a separate minimal `templates/meetings/base_room.html` with no centering, and pointing `room.html` to extend that instead.
+
+5. **Peer connection "initiator" logic bug (RESOLVED):** Initially, both new and existing peers tried to initiate the WebRTC connection symmetrically, causing duplicate/failed peer connections and participants not seeing each other (always showing "1 participant" on both ends, or duplicate video tiles after refresh). **Fixed** by establishing a clear rule: existing members always initiate (`initiator: true`) toward a new joiner; the new joiner responds as non-initiator (`initiator: false`) when receiving a `user-joined` event. Also added cleanup logic (`createPeer` now destroys any pre-existing peer for that channel before creating a new one) to prevent duplicate tiles on refresh/rejoin.
+
+6. **Same-device WebRTC testing limitation:** Two browser tabs on the same physical machine cannot properly test two-camera video calling (only one process can access the webcam at a time) — this is a hardware limitation, not a code bug. Testing requires either two physical devices or careful single-camera/audio-only testing.
+
+7. **Mobile screen-share unsupported:** `getDisplayMedia()` is not available on Android/iOS browsers. This is **by design**, not a bug — the screen-share button is deliberately disabled on mobile via a `navigator.userAgent` check.
+
+8. **ngrok free-tier URL instability:** Every ngrok restart generates a brand-new random subdomain (e.g., `maturing-supplier-undertow.ngrok-free.app` → later `.dev`), requiring `ALLOWED_HOSTS` and `CSRF_TRUSTED_ORIGINS` to be manually updated in `settings.py` each time ngrok is restarted. This is a recurring friction point during dev/testing and will need a more permanent solution (paid ngrok static domain, or real deployment) going forward.
+
+9. **Chat feature — UNVERIFIED:** As noted above, this was actively being implemented in the final part of this conversation. The next developer should treat chat as "code written, not confirmed working" rather than "done."
+
+10. **No automated tests:** `tests.py` files exist in each app but are empty Django boilerplate — zero test coverage currently.
+
+11. **Daphne must be manually restarted after every settings.py/consumers.py/routing.py change** — there is no auto-reload in this dev setup (unlike `manage.py runserver`'s autoreloader), which has been a repeated source of "why isn't my fix working" confusion during the session.
+
+---
+
+## 12. Next Recommended Steps
+
+| Order | Task | Estimated effort |
+|---|---|---|
+| 1 | Verify chat feature works end-to-end (run migrations, test send/receive on 2 devices, check chat history loads on room re-entry) | 30–60 min |
+| 2 | Clean up `ALLOWED_HOSTS`/`CSRF_TRUSTED_ORIGINS` to handle ngrok URL changes more gracefully (e.g., read from env var, or regex-allow `*.ngrok-free.app`/`*.ngrok-free.dev` in dev only) | 30 min |
+| 3 | Register all models in Django admin + create a superuser, for easier debugging/data inspection going forward | 30 min |
+| 4 | Build Week 5: participant panel UI improvements (show who's muted, who's speaking, clean up dashboard with recent meetings list) | 3–5 hrs |
+| 5 | Build Week 6: meeting history page (list past meetings, view stored chat logs) using existing `Meeting`/`ChatMessage` data already being captured | 3–5 hrs |
+| 6 | Build Week 7: live transcription via the browser's Web Speech API (free, client-side, no backend changes needed beyond saving transcript text — consider a new `Transcript` model similar to `ChatMessage`) | 5–8 hrs |
+| 7 | Build Week 8: real-time translation — likely easiest via a free LibreTranslate instance or paid API; apply translation to both live captions and chat messages | 5–8 hrs |
+| 8 | Build Week 9–10: AI summary + insights — wire up Celery (already installed) to call Claude/OpenAI API with the saved transcript after a meeting ends, store result, display on a summary page; add basic speaking-time tracking by listening to audio activity over WebRTC or WebSocket join/leave timestamps | 8–12 hrs |
+| 9 | Switch database to PostgreSQL and channel layer to Redis (real, compatible version — e.g. Redis 7.x via Docker or WSL) in preparation for deployment | 2–4 hrs |
+| 10 | Deploy to Railway or Render, set environment variables, test publicly | 3–6 hrs |
+| 11 | UI/UX polish pass across all pages (Week 11 per original plan) | 8–15 hrs |
+
+---
+
+## 13. Final Handover Summary
+
+This is a Django-based real-time video conferencing platform built incrementally over 3 of 12 planned weeks by a 3-person intern team. **Working features:** user auth with custom roles, meeting room creation/joining via unique codes, full peer-to-peer WebRTC video/audio calling with mute/camera/screen-share controls, and live participant tracking — all powered by Django Channels (WebSocket) for signaling and SimplePeer.js (self-hosted, not CDN-loaded) for the actual WebRTC handshake. The app currently runs via **Daphne** (not `manage.py runserver` — this is critical, WebSockets won't work otherwise) using an **in-memory channel layer** (a temporary workaround after the installed Windows Redis build proved incompatible with `channels-redis`). Real-time text chat (model + WebSocket handler + UI) was the most recently written code and **needs verification** before being considered complete — check that migrations ran and test live message exchange across two devices first.
+
+The architecture pattern to preserve going forward: each new real-time feature (chat done; transcription/translation next) should follow the same pattern already established — extend `MeetingConsumer.receive()` to handle a new `type` of WebSocket message, broadcast it via `channel_layer.group_send()`, and optionally persist it to a new Django model mirroring `ChatMessage`. The video/signaling logic in `room.html`'s inline JavaScript should NOT need to change for these additions — it's self-contained and stable now.
+
+**Before doing anything else**, the next developer/AI should: (1) confirm the chat feature actually works by running `migrate` and testing live, (2) be aware that `ALLOWED_HOSTS`/`CSRF_TRUSTED_ORIGINS` currently contain stale/temporary ngrok URLs that will need refreshing for continued cross-device testing, and (3) understand that production-readiness items (PostgreSQL, real Redis, deployment config) have been deliberately deferred and are NOT yet started — current state is dev-only on a single Windows machine.
+
+{
+  "project_continuation_brief": {
+    "meta": {
+      "project_name": "Connect - AI-Powered Real-Time Video Meeting Platform",
+      "internship_task_id": "IN-TA-TPG-1459-LOGICLOOP",
+      "organization": "TechPower Global Pvt Ltd",
+      "brief_version": "1.0",
+      "current_week_of_12": 3,
+      "team_size": 3,
+      "purpose": "Real-time video conferencing platform with planned AI features: live transcription, real-time translation, automatic meeting summaries, meeting insights",
+      "primary_os_dev_environment": "Windows 11",
+      "intended_consumer": "Antigravity AI agent continuing development"
+    },
+
+    "tech_stack": {
+      "backend_framework": { "name": "Django", "version": "6.0.5" },
+      "asgi_server": { "name": "Daphne", "version": "4.2.2", "critical_note": "MUST run via Daphne, not manage.py runserver. WebSockets do not work under WSGI/runserver." },
+      "realtime_framework": { "name": "Django Channels", "version": "4.3.2" },
+      "channel_layer": {
+        "current": "channels.layers.InMemoryChannelLayer",
+        "reason_not_redis": "Installed Windows Redis 3.0.504 lacks BZPOPMIN command required by channels-redis 4.3.0; caused immediate WebSocket disconnects",
+        "production_requirement": "Must switch to channels_redis.core.RedisChannelLayer with Redis >= 6.2 before any multi-process/multi-server deployment"
+      },
+      "rest_framework": { "name": "djangorestframework", "version": "3.17.1", "status": "installed_unused", "note": "No serializers.py or DRF views exist; all routes are Django template views + one WebSocket consumer" },
+      "database": {
+        "current": { "engine": "SQLite", "file": "db.sqlite3" },
+        "planned_production": { "engine": "PostgreSQL", "driver": "psycopg2-binary", "driver_version": "2.9.12", "status": "installed_not_configured" }
+      },
+      "webrtc": {
+        "browser_api": "WebRTC (native)",
+        "library": "SimplePeer.js",
+        "library_version": "9.11.1",
+        "hosting": "self-hosted at static/js/simplepeer.min.js",
+        "why_self_hosted": "CDN version (unpkg.com) was blocked by Microsoft Edge Tracking Prevention, breaking all video functionality silently"
+      },
+      "background_tasks": { "name": "Celery", "version": "5.6.3", "broker_planned": "Redis 7.4.0 (python package)", "status": "installed_not_wired_up" },
+      "frontend": { "type": "server-rendered Django templates", "framework": "none", "js": "vanilla JS only", "css": "hand-written inline/embedded CSS, no Bootstrap/Tailwind" },
+      "image_handling": { "name": "Pillow", "version": "12.2.0", "status": "installed, profile_picture field exists, no upload UI built" },
+      "env_management": { "name": "python-dotenv", "version": "1.2.2", "config_file": ".env" },
+      "tunneling_dev_only": { "name": "ngrok", "version": "3.39.6", "purpose": "expose local Daphne server via HTTPS for mobile/cross-device camera+mic testing", "known_issue": "free tier generates new random subdomain on every restart" },
+      "version_control": { "system": "Git", "remote": "GitHub", "visibility": "public", "collaborators": 3 },
+      "authentication": { "provider": "Django built-in auth (django.contrib.auth)", "custom_user_model": true, "oauth_or_social_login": false },
+      "hosting_deployment": { "status": "not_deployed", "planned_platforms": ["Railway", "Render"], "deployment_config_exists": false }
+    },
+
+    "architecture": {
+      "pattern": "Monolithic Django app with WebSocket signaling layer for WebRTC peer-to-peer media",
+      "entry_points": {
+        "asgi": "core/asgi.py",
+        "wsgi": "core/wsgi.py (unused in practice)",
+        "run_command": "python -m daphne -b 0.0.0.0 -p 8000 core.asgi:application"
+      },
+      "media_flow": "Video/audio travels peer-to-peer directly between browsers via WebRTC; Django Channels WebSocket only carries small signaling messages (SDP offers/answers, ICE candidates) and chat text. The server never touches actual video/audio bytes.",
+      "apps": [
+        { "name": "core", "role": "project config: settings, root urls, asgi wiring" },
+        { "name": "accounts", "role": "custom User model, signup/login/logout/dashboard" },
+        { "name": "meetings", "role": "core domain app: Meeting/Participant models, room views, WebSocket consumer, WS routing" },
+        { "name": "chat", "role": "ChatMessage model; in-progress feature, UNVERIFIED as of handover", "status": "in_progress_unverified" },
+        { "name": "ai_insights", "role": "scaffolded only, no models/views/logic exists yet", "status": "empty_scaffold" }
+      ],
+      "asgi_wiring": {
+        "file": "core/asgi.py",
+        "structure": "ProtocolTypeRouter -> { http: get_asgi_application(), websocket: AuthMiddlewareStack(URLRouter(meetings.routing.websocket_urlpatterns)) }",
+        "critical_dependency": "meetings/routing.py and meetings/consumers.py MUST exist or Daphne fails to import core.asgi with ModuleNotFoundError"
+      },
+      "websocket_room_state": {
+        "storage": "in-process Python dict named room_members, keyed by room_group_name, mapping channel_name -> username",
+        "lifecycle": "populated on consumer connect(), member removed on disconnect(), group deleted from dict when empty",
+        "scaling_warning": "This in-memory dict will NOT work correctly across multiple server processes/workers — tied directly to the InMemoryChannelLayer limitation"
+      },
+      "peer_connection_logic": {
+        "rule": "Existing room members always initiate the WebRTC connection (initiator: true) toward a newly joined participant. The new participant responds as non-initiator (initiator: false) upon receiving the 'user-joined' event.",
+        "cleanup_rule": "createPeer() in room.html JS must destroy any pre-existing peer object for a given channel before creating a new one, to prevent duplicate video tiles on refresh/rejoin"
+      }
+    },
+
+    "folder_structure": {
+      "root": "meeting_platform_output/",
+      "key_paths": {
+        "manage.py": "Django CLI entry point",
+        "requirements.txt": "pinned dependencies",
+        ".env": "SECRET_KEY, DEBUG - not committed",
+        "ngrok.exe": "kept in project root for dev convenience",
+        "core/settings.py": "all configuration",
+        "core/urls.py": "root URL routing, includes static() serving in dev",
+        "core/asgi.py": "CRITICAL: HTTP+WebSocket protocol router",
+        "accounts/models.py": "custom User model",
+        "accounts/forms.py": "SignupForm, LoginForm",
+        "accounts/views.py": "signup_view, login_view, logout_view, dashboard_view",
+        "accounts/urls.py": "accounts app routes",
+        "meetings/models.py": "Meeting, Participant models",
+        "meetings/views.py": "create_meeting, join_meeting, meeting_room, end_meeting, leave_meeting",
+        "meetings/urls.py": "meetings app routes",
+        "meetings/routing.py": "WebSocket URL routing for ws/meeting/<room_code>/",
+        "meetings/consumers.py": "MeetingConsumer - signaling + chat handling",
+        "chat/models.py": "ChatMessage model (NEW, unverified migration status)",
+        "ai_insights/": "empty scaffold, no files of substance",
+        "templates/accounts/base.html": "centered-card base template for auth pages ONLY - do not extend from room.html",
+        "templates/accounts/{signup,login,dashboard}.html": "auth page templates",
+        "templates/meetings/base_room.html": "separate full-screen base template just for the room page",
+        "templates/meetings/{create_meeting,join_meeting,room}.html": "meeting templates; room.html contains the full WebRTC+chat JS logic inline",
+        "templates/landing/index.html": "public landing page",
+        "static/css/": "landing page CSS",
+        "static/js/landing.js": "landing page JS",
+        "static/js/simplepeer.min.js": "self-hosted WebRTC library, 99KB",
+        "staticfiles/": "collectstatic output, 160 files"
+      }
+    },
+
+    "database_schema": {
+      "accounts_User": {
+        "extends": "django.contrib.auth.models.AbstractUser",
+        "auth_user_model_setting": "accounts.User",
+        "fields": {
+          "role": { "type": "CharField", "choices": ["host", "participant"], "default": "participant", "note": "cosmetic only - NOT used for actual meeting-level permission checks" },
+          "profile_picture": { "type": "ImageField", "upload_to": "profiles/", "nullable": true, "note": "no upload UI built" }
+        }
+      },
+      "meetings_Meeting": {
+        "fields": {
+          "room_code": { "type": "CharField(20)", "unique": true, "generation": "uuid.uuid4().hex[:10].upper() in overridden save()" },
+          "title": { "type": "CharField(200)", "default": "Untitled Meeting" },
+          "host": { "type": "ForeignKey", "to": "User", "related_name": "hosted_meetings" },
+          "created_at": { "type": "DateTimeField", "auto_now_add": true },
+          "started_at": { "type": "DateTimeField", "nullable": true },
+          "ended_at": { "type": "DateTimeField", "nullable": true },
+          "is_active": { "type": "BooleanField", "default": true }
+        }
+      },
+      "meetings_Participant": {
+        "fields": {
+          "meeting": { "type": "ForeignKey", "to": "Meeting", "related_name": "participants" },
+          "user": { "type": "ForeignKey", "to": "User", "related_name": "participations" },
+          "joined_at": { "type": "DateTimeField", "auto_now_add": true },
+          "left_at": { "type": "DateTimeField", "nullable": true },
+          "is_active": { "type": "BooleanField", "default": true }
+        }
+      },
+      "chat_ChatMessage": {
+        "status": "NEW, written this session, migration_confirmed: false",
+        "fields": {
+          "meeting": { "type": "ForeignKey", "to": "Meeting", "related_name": "chat_messages" },
+          "sender": { "type": "ForeignKey", "to": "User" },
+          "message": { "type": "TextField" },
+          "timestamp": { "type": "DateTimeField", "auto_now_add": true }
+        },
+        "meta": { "ordering": ["timestamp"] }
+      },
+      "relationships": [
+        "User 1..N Meeting (as host)",
+        "User 1..N Participant (as participations)",
+        "Meeting 1..N Participant",
+        "Meeting 1..N ChatMessage",
+        "User 1..N ChatMessage (as sender)"
+      ]
+    },
+
+    "api_and_routes": {
+      "rest_api": "none - DRF installed but unused",
+      "http_routes": [
+        { "method": ["GET", "POST"], "path": "/accounts/signup/", "view": "signup_view", "auth_required": false },
+        { "method": ["GET", "POST"], "path": "/accounts/login/", "view": "login_view", "auth_required": false },
+        { "method": ["GET"], "path": "/accounts/logout/", "view": "logout_view", "auth_required": true },
+        { "method": ["GET"], "path": "/accounts/dashboard/", "view": "dashboard_view", "auth_required": true },
+        { "method": ["GET", "POST"], "path": "/meetings/create/", "view": "create_meeting", "auth_required": true },
+        { "method": ["GET", "POST"], "path": "/meetings/join/", "view": "join_meeting", "auth_required": true },
+        { "method": ["GET"], "path": "/meetings/room/<room_code>/", "view": "meeting_room", "auth_required": true },
+        { "method": ["GET"], "path": "/meetings/end/<room_code>/", "view": "end_meeting", "auth_required": true, "extra_restriction": "host only, enforced via Meeting.objects.get(host=request.user)" },
+        { "method": ["GET"], "path": "/meetings/leave/<room_code>/", "view": "leave_meeting", "auth_required": true },
+        { "method": ["GET"], "path": "/admin/", "view": "django.contrib.admin", "auth_required": true, "note": "default admin, custom models NOT registered" },
+        { "method": ["GET"], "path": "/", "view": "TemplateView -> landing/index.html", "auth_required": false },
+        { "method": ["GET"], "path": "/static/<path>", "view": "static() helper", "auth_required": false }
+      ],
+      "websocket_routes": [
+        {
+          "path_pattern": "ws/meeting/<room_code>/",
+          "consumer": "meetings.consumers.MeetingConsumer",
+          "auth": "Django session via AuthMiddlewareStack, no separate token",
+          "client_to_server_message_types": [
+            { "type": "signal", "schema": { "type": "signal", "target": "channel_name", "signal": "SDP/ICE object" } },
+            { "type": "chat", "schema": { "type": "chat", "message": "string" } }
+          ],
+          "server_to_client_message_types": [
+            { "type": "existing-members", "schema": { "type": "existing-members", "members": [ { "channel": "string", "user": "string" } ] } },
+            { "type": "user-joined", "schema": { "type": "user-joined", "user": "string", "channel": "string" } },
+            { "type": "user-left", "schema": { "type": "user-left", "user": "string", "channel": "string" } },
+            { "type": "signal", "schema": { "type": "signal", "sender_channel": "string", "sender": "string", "signal": "object", "target": "string" } },
+            { "type": "chat", "schema": { "type": "chat", "message": "string", "sender": "string" } }
+          ]
+        }
+      ]
+    },
+
+    "environment_variables": {
+      "required": {
+        "SECRET_KEY": { "purpose": "Django secret key", "source": ".env via python-dotenv" },
+        "DEBUG": { "purpose": "Django debug mode toggle", "current_value": "True", "must_be_false_in_production": true }
+      },
+      "settings_needing_cleanup_before_production": {
+        "ALLOWED_HOSTS": {
+          "current_value": ["127.0.0.1", "localhost", "192.168.1.4", "maturing-supplier-undertow.ngrok-free.app", "maturing-supplier-undertow.ngrok-free.dev"],
+          "problem": "contains stale/session-specific ngrok subdomains and a local LAN IP; ngrok free tier issues a new random subdomain every restart",
+          "recommended_fix": "read allowed hosts from env var, or use regex ALLOWED_HOSTS pattern for *.ngrok-free.app/.dev in dev only"
+        },
+        "CSRF_TRUSTED_ORIGINS": {
+          "same_problem_as": "ALLOWED_HOSTS",
+          "current_value": ["https://maturing-supplier-undertow.ngrok-free.app", "https://maturing-supplier-undertow.ngrok-free.dev"]
+        }
+      },
+      "static_files_config": {
+        "STATIC_URL": "/static/ (note: MUST have leading slash, missing slash caused MIME type errors via ngrok)",
+        "STATICFILES_DIRS": ["BASE_DIR/static"],
+        "STATIC_ROOT": "BASE_DIR/staticfiles"
+      }
+    },
+
+    "build_and_run_commands": {
+      "install": "pip install -r requirements.txt",
+      "migrate": "python manage.py migrate",
+      "collectstatic": "python manage.py collectstatic --noinput",
+      "run_dev_server": ".\\venv\\Scripts\\python.exe -m daphne -b 0.0.0.0 -p 8000 core.asgi:application",
+      "run_dev_server_warning": "Do NOT use 'python manage.py runserver' - it is WSGI-only and will silently break all WebSocket/video/chat functionality",
+      "tunnel_for_mobile_testing": ".\\ngrok.exe http 8000",
+      "venv_activation_windows": "venv\\Scripts\\activate"
+    },
+
+    "completed_tasks": [
+      { "id": "T1", "name": "Django project scaffold with 4 apps", "status": "done" },
+      { "id": "T2", "name": "Custom User model with role field", "status": "done" },
+      { "id": "T3", "name": "Signup/login/logout/dashboard flow", "status": "done" },
+      { "id": "T4", "name": "Meeting model with auto-generated unique room_code", "status": "done" },
+      { "id": "T5", "name": "Create meeting / join meeting via room code", "status": "done" },
+      { "id": "T6", "name": "Participant model + join/leave/end tracking", "status": "done" },
+      { "id": "T7", "name": "Django Channels WebSocket consumer (MeetingConsumer)", "status": "done" },
+      { "id": "T8", "name": "WebRTC peer-to-peer video/audio via SimplePeer.js", "status": "done" },
+      { "id": "T9", "name": "Mute/unmute mic, camera on/off, screen share (desktop)", "status": "done" },
+      { "id": "T10", "name": "Live participant count + existing-member sync on join", "status": "done" },
+      { "id": "T11", "name": "Cross-device testing via ngrok HTTPS tunnel", "status": "done" },
+      { "id": "T12", "name": "Static file serving fixed (STATIC_URL leading slash + static() route)", "status": "done" },
+      { "id": "T13", "name": "Separate base_room.html to fix full-screen layout conflict", "status": "done" },
+      { "id": "T14", "name": "Real-time text chat (model + consumer + UI)", "status": "in_progress_unverified", "verification_needed": ["run makemigrations chat", "run migrate", "test send/receive across 2 devices", "confirm chat history loads on room re-entry"] },
+      { "id": "T15", "name": "Landing page (hero/features/how-it-works sections)", "status": "built_not_deeply_verified" }
+    ],
+
+    "pending_tasks": [
+      { "id": "P1", "name": "Verify chat feature end-to-end", "priority": "high", "depends_on": "T14", "estimated_effort": "30-60 min" },
+      { "id": "P2", "name": "Fix ALLOWED_HOSTS / CSRF_TRUSTED_ORIGINS ngrok churn", "priority": "high", "estimated_effort": "30 min" },
+      { "id": "P3", "name": "Switch CHANNEL
+<truncated 13728 bytes>
+
+NOTE: The output was truncated because it was too long. Use a more targeted query or a smaller range to get the information you need.
