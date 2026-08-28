@@ -12,7 +12,26 @@ from .models import Meeting, Participant, TranscriptMessage
 from ai_insights.models import AIInsight
 import json
 import requests
-from collections import Counter
+from collections import OrderedDict, Counter
+import threading
+
+TRANSLATION_CACHE = OrderedDict()
+TRANSLATION_CACHE_LOCK = threading.Lock()
+MAX_CACHE_SIZE = 1000
+
+def get_cached_translation(key):
+    with TRANSLATION_CACHE_LOCK:
+        if key in TRANSLATION_CACHE:
+            TRANSLATION_CACHE.move_to_end(key)
+            return TRANSLATION_CACHE[key]
+    return None
+
+def set_cached_translation(key, value):
+    with TRANSLATION_CACHE_LOCK:
+        TRANSLATION_CACHE[key] = value
+        TRANSLATION_CACHE.move_to_end(key)
+        if len(TRANSLATION_CACHE) > MAX_CACHE_SIZE:
+            TRANSLATION_CACHE.popitem(last=False)
 
 
 @login_required
@@ -185,6 +204,12 @@ def translate_text(request):
         if src and src == tgt:
             return JsonResponse({'translated_text': text})
 
+        # Cache check
+        cache_key = f"{src}:{tgt}:{text}"
+        cached = get_cached_translation(cache_key)
+        if cached is not None:
+            return JsonResponse({'translated_text': cached})
+
         from django.conf import settings as django_settings
         gemini_api_key = getattr(django_settings, 'GEMINI_API_KEY', '') or os.getenv('GEMINI_API_KEY', '')
 
@@ -221,7 +246,7 @@ def translate_text(request):
                             'maxOutputTokens': 300,
                         }
                     }
-                    r = requests.post(url, headers=headers, json=payload, timeout=5)
+                    r = requests.post(url, headers=headers, json=payload, timeout=2.5)
                     if r.status_code == 200:
                         res = r.json()
                         candidates = res.get('candidates', [])
@@ -230,6 +255,7 @@ def translate_text(request):
                             if parts and parts[0].get('text'):
                                 translated = parts[0]['text'].strip()
                                 if translated:
+                                    set_cached_translation(cache_key, translated)
                                     return JsonResponse({'translated_text': translated})
                 except Exception as gemini_err:
                     continue
@@ -240,12 +266,13 @@ def translate_text(request):
             resp = requests.get(
                 'https://api.mymemory.translated.net/get',
                 params={'q': text, 'langpair': lang_pair},
-                timeout=5
+                timeout=2.5
             )
             if resp.status_code == 200:
                 data = resp.json()
                 translated = data.get('responseData', {}).get('translatedText', '').strip()
                 if translated and translated.upper() != 'INVALID LANGUAGE PAIR':
+                    set_cached_translation(cache_key, translated)
                     return JsonResponse({'translated_text': translated})
         except Exception:
             pass

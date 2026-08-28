@@ -3,103 +3,232 @@
 {% block content %}
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { background: #111; font-family: sans-serif; overflow: hidden; }
-  .room-header { background: #1a1a1a; padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #333; position: fixed; top: 0; left: 0; right: 0; z-index: 10; }
-  .room-title { color: #fff; font-size: 15px; font-weight: 500; }
-  .room-code { color: #888; font-size: 12px; margin-top: 2px; }
-  .video-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 8px;
-    padding: 16px;
-    margin-top: 60px;
-    margin-bottom: 80px;
-    overflow-y: auto;
-    max-height: calc(100vh - 140px);
+  body { background: #0b0f19; font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; overflow: hidden; color: #f8fafc; }
+  
+  :root {
+    --primary: #6366f1;
+    --primary-hover: #4f46e5;
+    --bg-darker: #0b0f19;
+    --bg-dark: #121826;
+    --bg-panel: #1a2235;
+    --border-glass: rgba(255, 255, 255, 0.08);
+    --bg-glass: rgba(18, 24, 38, 0.85);
+    --bg-active: rgba(99, 102, 241, 0.2);
+    --shadow-premium: 0 12px 30px rgba(0, 0, 0, 0.5);
+    --transition-fast: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   }
-  @media (max-width: 640px) {
-    .video-grid {
+
+  /* Scrollbars */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.2); }
+
+  /* Room shell */
+  .room-layout { display: flex; flex-direction: column; height: 100vh; background-color: var(--bg-darker); overflow: hidden; position: relative; }
+
+  /* Compact Header */
+  .room-header { height: 64px; background-color: rgba(18, 24, 38, 0.8); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border-glass); padding: 0 24px; display: flex; align-items: center; justify-content: space-between; position: fixed; top: 0; left: 0; right: 0; z-index: 100; }
+  .header-left { display: flex; flex-direction: column; gap: 2px; }
+  .meeting-title-row { display: flex; align-items: center; gap: 8px; line-height: 1; }
+  .status-dot { width: 8px; height: 8px; background-color: #10b981; border-radius: 50%; display: inline-block; flex-shrink: 0; box-shadow: 0 0 8px #10b981; animation: pulse-green 2s infinite; }
+  @keyframes pulse-green {
+    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+    70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+  }
+  .room-title { color: #f8fafc; font-size: 15px; font-weight: 600; line-height: 1; }
+  .room-code-row { display: flex; align-items: center; gap: 8px; color: #94a3b8; font-size: 12px; margin-top: 4px; line-height: 1; }
+  #copy-link-btn { background: none; border: none; color: #818cf8; cursor: pointer; font-size: 11px; font-weight: 500; padding: 0; text-decoration: underline; line-height: 1; transition: color var(--transition-fast); }
+  #copy-link-btn:hover { color: #a5b4fc; }
+
+  .header-right { display: flex; align-items: center; gap: 12px; }
+  .header-badge { background-color: rgba(255, 255, 255, 0.06); border: 1px solid var(--border-glass); border-radius: 20px; padding: 6px 12px; font-size: 12px; color: #e2e8f0; display: flex; align-items: center; gap: 6px; }
+
+  /* Styled compact translation selector */
+  .translation-container { position: relative; display: flex; align-items: center; }
+  .translation-select { background: #121826; border: 1px solid var(--border-glass); color: #f8fafc; border-radius: 20px; padding: 6px 12px 6px 32px; font-size: 12px; font-weight: 500; cursor: pointer; outline: none; font-family: inherit; appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; background-size: 10px; padding-right: 30px; transition: all var(--transition-fast); }
+  .translation-select:hover { background-color: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.15); }
+  .translation-select option { background-color: #121826; color: #f8fafc; }
+  .translation-icon { position: absolute; left: 12px; font-size: 12px; pointer-events: none; }
+
+  /* Main Stage Layout */
+  .main-stage-container { display: flex; flex: 1; margin-top: 64px; margin-bottom: 78px; height: calc(100vh - 142px); position: relative; overflow: hidden; }
+  .video-grid { flex: 1; display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; padding: 24px; overflow-y: auto; align-content: center; justify-content: center; }
+
+  /* Participant grid layout custom overrides for Desktop */
+  @media (min-width: 769px) {
+    /* Single participant: Centered, larger stage */
+    .video-grid:not(.spotlight-mode):has(> :first-child:last-child) {
       grid-template-columns: 1fr;
-      overflow-y: auto;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    /* Two participants: side-by-side */
+    .video-grid:not(.spotlight-mode):has(> :nth-child(2):last-child) {
+      grid-template-columns: 1fr 1fr;
+    }
+    /* Three or four participants: balanced 2-column grid */
+    .video-grid:not(.spotlight-mode):has(> :nth-child(3):last-child),
+    .video-grid:not(.spotlight-mode):has(> :nth-child(4):last-child) {
+      grid-template-columns: 1fr 1fr;
     }
   }
-  /* Spotlight Mode styles */
-  .video-grid.spotlight-mode {
-    display: grid;
-    grid-template-columns: 3fr 1fr;
-    grid-template-rows: 1fr;
-    gap: 12px;
-  }
-  @media (max-width: 768px) {
-    .video-grid.spotlight-mode {
-      grid-template-columns: 1fr;
-      grid-template-rows: 3fr 1fr;
-    }
-  }
-  .spotlight-main {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: #111;
-    border-radius: 10px;
-    overflow: hidden;
-  }
-  .spotlight-main .video-wrapper {
-    width: 100%;
-    height: 100%;
-    aspect-ratio: auto;
-  }
-  .thumbnail-strip {
-    display: flex;
+
+  /* Captions Overlay Container styled to display centered inside stage container overlaying video */
+  #captions-overlay {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 90;
+    width: 90%;
+    max-width: 600px;
+    display: none;
     flex-direction: column;
-    gap: 8px;
-    overflow-y: auto;
-    padding-right: 4px;
+    gap: 6px;
+    pointer-events: none;
   }
-  @media (max-width: 768px) {
-    .thumbnail-strip {
-      flex-direction: row;
-      overflow-x: auto;
-      overflow-y: hidden;
-      height: 120px;
-      padding-bottom: 4px;
-    }
-    .thumbnail-strip .video-wrapper {
-      height: 100%;
-      aspect-ratio: 16/9;
-      min-width: 160px;
-    }
-  }
-  .video-wrapper { position: relative; background: #1e1e1e; border-radius: 10px; overflow: hidden; aspect-ratio: 16/9; }
+
+  /* Spotlight Mode */
+  .video-grid.spotlight-mode { display: grid; grid-template-columns: 3.5fr 1fr; grid-template-rows: 1fr; gap: 16px; padding: 24px; }
+  .spotlight-main { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+  .spotlight-main .video-wrapper { width: 100%; height: 100%; aspect-ratio: auto; }
+  .thumbnail-strip { display: flex; flex-direction: column; gap: 12px; overflow-y: auto; padding-right: 4px; }
+
+  /* Video wrapper & items */
+  .video-wrapper { position: relative; background-color: var(--bg-dark); border: 1px solid var(--border-glass); border-radius: 12px; overflow: hidden; aspect-ratio: 16/9; box-shadow: 0 4px 20px rgba(0,0,0,0.3); transition: transform var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast); }
+  .video-wrapper:hover { border-color: rgba(255, 255, 255, 0.15); box-shadow: 0 10px 25px rgba(0,0,0,0.4); }
+  .video-wrapper.active-speaker { border-color: var(--primary); box-shadow: 0 0 12px rgba(99, 102, 241, 0.4); }
+  .video-wrapper.pinned-speaker { border-color: rgba(99, 102, 241, 0.5) !important; box-shadow: 0 0 12px rgba(99, 102, 241, 0.3); }
   .video-wrapper video { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .video-label { position: absolute; bottom: 8px; left: 8px; background: rgba(0,0,0,0.6); color: #fff; font-size: 12px; padding: 3px 8px; border-radius: 4px; }
-  .controls { position: fixed; bottom: 0; left: 0; right: 0; background: #1a1a1a; padding: 14px 20px; display: flex; justify-content: center; gap: 12px; border-top: 1px solid #333; z-index: 10; }
-  .ctrl-btn { width: 48px; height: 48px; border-radius: 50%; border: none; cursor: pointer; font-size: 20px; display: flex; align-items: center; justify-content: center; background: #333; color: #fff; transition: background 0.2s; }
-  .ctrl-btn:hover { background: #444; }
-  .ctrl-btn.muted { background: #ef4444; }
-  .ctrl-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-  .end-btn { background: #ef4444; color: white; border: none; padding: 10px 24px; border-radius: 24px; cursor: pointer; font-size: 14px; font-weight: 500; text-decoration: none; display: flex; align-items: center; }
-  .status-bar { position: fixed; top: 70px; right: 16px; background: rgba(0,0,0,0.7); color: #fff; font-size: 12px; padding: 6px 12px; border-radius: 6px; z-index: 10; transition: opacity 0.5s; }
+
+  /* Video metadata labels */
+  .video-label { position: absolute; bottom: 12px; left: 12px; background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.08); color: #fff; font-size: 11px; font-weight: 500; padding: 4px 10px; border-radius: 20px; z-index: 4; display: flex; align-items: center; gap: 6px; }
+  .host-badge { background: var(--primary); color: #fff; font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 4px; text-transform: uppercase; margin-left: 2px; }
+
+  /* Camera Off Overlay */
+  .video-avatar { position: absolute; inset: 0; background: radial-gradient(circle, #1e293b 0%, #0f172a 100%); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; z-index: 2; }
+  .avatar-circle { width: 72px; height: 72px; border-radius: 50%; background: linear-gradient(135deg, var(--primary) 0%, #4338ca 100%); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: 700; box-shadow: 0 8px 24px rgba(99, 102, 241, 0.3); }
+  .avatar-text { color: #94a3b8; font-size: 12px; font-weight: 500; }
+
+  /* Subtle Pin Button */
+  .pin-btn { position: absolute; top: 12px; right: 12px; background: rgba(15, 23, 42, 0.65); border: 1px solid rgba(255, 255, 255, 0.1); color: #fff; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 5; transition: all var(--transition-fast); opacity: 0; }
+  .video-wrapper:hover .pin-btn { opacity: 1; }
+  .pin-btn:hover { background: var(--primary); border-color: var(--primary-hover); transform: scale(1.1); }
+
+  /* Floating Bottom Controls Dock */
+  .controls { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); background-color: var(--bg-glass); backdrop-filter: blur(16px); border: 1px solid var(--border-glass); padding: 10px 24px; border-radius: 30px; display: flex; align-items: center; gap: 8px; z-index: 110; box-shadow: var(--shadow-premium); }
+  .ctrl-btn { width: 42px; height: 42px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.06); cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; background: rgba(255, 255, 255, 0.05); color: #fff; transition: all var(--transition-fast); }
+  .ctrl-btn:hover { background: rgba(255, 255, 255, 0.12); border-color: rgba(255,255,255,0.12); transform: translateY(-2px); }
+  .ctrl-btn.active { background: var(--primary) !important; border-color: var(--primary-hover) !important; }
+  .ctrl-btn.muted { background: var(--danger) !important; border-color: var(--danger-dark) !important; }
+  .ctrl-btn:disabled { opacity: 0.3; cursor: not-allowed; transform: none !important; }
+
+  .end-btn { background: var(--danger); color: #fff; border: none; padding: 9px 18px; border-radius: 20px; cursor: pointer; font-size: 12px; font-weight: 600; text-decoration: none; display: flex; align-items: center; justify-content: center; transition: all var(--transition-fast); }
+  .end-btn:hover { background: var(--danger-hover); transform: translateY(-2px); }
+
+  /* Drawers / Side Panels */
+  .side-panel { position: absolute; top: 0; right: 0; bottom: 0; width: 340px; background-color: var(--bg-panel); border-left: 1px solid var(--border-glass); display: none; flex-direction: column; z-index: 120; box-shadow: -8px 0 25px rgba(0, 0, 0, 0.4); animation: slide-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+  @keyframes slide-in { from { transform: translateX(100%); } to { transform: translateX(0); } }
+  .panel-header { padding: 18px 20px; border-bottom: 1px solid var(--border-glass); color: #fff; font-size: 14px; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
+  .panel-close { cursor: pointer; color: #94a3b8; font-size: 20px; transition: color var(--transition-fast); }
+  .panel-close:hover { color: #fff; }
+
+  /* Message bubbles */
+  .chat-messages-container { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+  .chat-bubble-row { display: flex; gap: 8px; align-items: flex-start; }
+  .chat-bubble-avatar { width: 28px; height: 28px; border-radius: 50%; background-color: var(--primary); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
+  .chat-bubble-content { flex: 1; display: flex; flex-direction: column; gap: 3px; }
+  .chat-bubble-meta { display: flex; align-items: baseline; gap: 6px; font-size: 10px; }
+  .chat-bubble-sender { color: #a5b4fc; font-weight: 600; }
+  .chat-bubble-time { color: #64748b; }
+  .chat-bubble-text { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.04); padding: 8px 12px; border-radius: 0 12px 12px 12px; color: #e2e8f0; font-size: 12px; line-height: 1.4; word-break: break-word; }
+  .chat-bubble-row.me { flex-direction: row-reverse; }
+  .chat-bubble-row.me .chat-bubble-text { background: var(--primary); border-color: var(--primary-hover); border-radius: 12px 0 12px 12px; color: #fff; }
+  .chat-bubble-row.me .chat-bubble-avatar { background-color: #4338ca; }
+  .chat-bubble-row.me .chat-bubble-sender { color: #818cf8; }
+
+  .chat-input-area { padding: 12px 16px; border-top: 1px solid var(--border-glass); display: flex; gap: 8px; align-items: center; }
+  .chat-input-field { flex: 1; padding: 8px 12px; border-radius: 18px; border: 1px solid var(--border-glass); background: rgba(0, 0, 0, 0.2); color: #fff; font-size: 12px; outline: none; transition: border-color var(--transition-fast); }
+  .chat-input-field:focus { border-color: var(--primary); }
+  .chat-send-btn { width: 32px; height: 32px; background: var(--primary); color: #fff; border: none; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 12px; transition: all var(--transition-fast); }
+  .chat-send-btn:hover { background: var(--primary-hover); transform: scale(1.05); }
+
+  /* More menu popover dropdown */
+  .more-menu-popover { animation: pop-up 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+  @keyframes pop-up { from { transform: translateY(10px) scale(0.95); opacity: 0; } to { transform: translateY(0) scale(1); opacity: 1; } }
+  .more-menu-item { padding: 10px 16px; color: #e2e8f0; font-size: 13px; font-weight: 500; cursor: pointer; display: flex; align-items: center; transition: background var(--transition-fast); }
+  .more-menu-item:hover { background-color: rgba(255, 255, 255, 0.05); color: #fff; }
+  .more-icon { width: 20px; display: inline-block; }
+
+  /* Modals Overlay */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.7); display: flex; align-items: center; justify-content: center; z-index: 200; backdrop-filter: blur(4px); }
+  .modal-container { background: var(--bg-panel); border: 1px solid var(--border-glass); border-radius: 12px; width: 380px; box-shadow: var(--shadow-premium); overflow: hidden; animation: pop-up 0.2s ease-out; }
+  .modal-header { padding: 16px 20px; border-bottom: 1px solid var(--border-glass); display: flex; justify-content: space-between; align-items: center; }
+  .modal-close { cursor: pointer; color: #94a3b8; font-size: 20px; }
+  .modal-close:hover { color: #fff; }
+
+  /* Raise hand visual glow indicator */
+  .video-wrapper.hand-raised-glow { border-color: #f59e0b; box-shadow: 0 0 12px rgba(245, 158, 11, 0.4); }
+
+  .react-emoji { font-size:28px; cursor:pointer; transition:transform 0.15s; user-select:none; }
+  .react-emoji:hover { transform:scale(1.35); }
+  @keyframes floatUp {
+    0%   { opacity:1; transform:translateY(0) scale(1); }
+    100% { opacity:0; transform:translateY(-120px) scale(1.8); }
+  }
+  .floating-emoji { position:fixed; font-size:40px; pointer-events:none; z-index:150; animation:floatUp 2s ease-out forwards; }
+  .raise-hand-indicator { position:absolute; top:4px; right:4px; font-size:16px; }
+  @keyframes pulseHand {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.08); }
+    100% { transform: scale(1); }
+  }
+  @keyframes popReaction {
+    0% { transform: scale(0.5); opacity: 0; }
+    70% { transform: scale(1.2); }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  @keyframes slideDown {
+    0% { transform: translate(-50%, -20px); opacity: 0; }
+    100% { transform: translate(-50%, 0); opacity: 1; }
+  }
+
+  /* Mobile/Tablet overrides */
+  @media (max-width: 768px) {
+    .main-stage-container { flex-direction: column; margin-bottom: 72px; height: calc(100vh - 136px); }
+    .video-grid.spotlight-mode { grid-template-columns: 1fr; grid-template-rows: 2.2fr 1fr; }
+    .thumbnail-strip { flex-direction: row; height: 105px; overflow-x: auto; overflow-y: hidden; padding-bottom: 4px; }
+    .thumbnail-strip .video-wrapper { height: 100%; aspect-ratio: 16/9; min-width: 130px; }
+    .side-panel { position: fixed; top: 64px; right: 0; bottom: 72px; width: 100%; z-index: 130; }
+    .controls { padding: 8px 16px; border-radius: 20px; gap: 6px; bottom: 12px; }
+    .ctrl-btn { width: 36px; height: 36px; font-size: 14px; }
+    #transcript-btn { padding: 0 10px; }
+    .end-btn { padding: 8px 14px; font-size: 11px; border-radius: 16px; }
+  }
 </style>
 
-<div class="room-header">
-  <div>
-    <div class="room-title">{{ meeting.title }}</div>
-    <div class="room-code" style="display: flex; align-items: center; gap: 8px;">
-      Room: {{ room_code }}
-      <button id="copy-link-btn" title="Copy Invite Link" style="background: none; border: none; color: #60a5fa; cursor: pointer; font-size: 11px; padding: 2px 4px; text-decoration: underline;">
-        Copy Link
-      </button>
+<div class="room-layout">
+  <!-- Header -->
+  <div class="room-header">
+    <div class="header-left">
+      <div class="meeting-title-row">
+        <span class="status-dot"></span>
+        <h1 class="room-title">{{ meeting.title }}</h1>
+      </div>
+      <div class="room-code-row">
+        <span>Room: {{ room_code }}</span>
+        <button id="copy-link-btn" title="Copy Invite Link">Copy Link</button>
+      </div>
     </div>
-  </div>
-  <div style="display: flex; align-items: center; gap: 15px;">
-    <!-- Caption Translation Language Selection (Per-User) -->
-    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-      <div id="caption-lang-container" style="display: none; align-items: center; gap: 6px; background: #222; border: 1px solid #444; border-radius: 6px; padding: 4px 10px;">
-        <label for="translation-lang-select" style="color: #9ca3af; font-size: 11px;">🌐 Translate captions to:</label>
-        <select id="translation-lang-select" title="Choose language to read captions in" style="background: #18181b; color: #fff; border: 1px solid #52525b; border-radius: 4px; padding: 3px 8px; font-size: 11px; cursor: pointer; outline: none;">
+    <div class="header-right">
+      <div class="header-badge" id="participant-count">
+        👥 1 participant
+      </div>
+      <div id="caption-lang-container" class="translation-container" style="display: none;">
+        <span class="translation-icon">🌐</span>
+        <select id="translation-lang-select" class="translation-select" title="Choose language to read captions in">
           <option value="original">Original (As Spoken)</option>
           <option value="en" selected>English</option>
           <option value="ta">Tamil</option>
@@ -124,127 +253,167 @@
           <option value="it">Italian</option>
         </select>
       </div>
+      <button class="header-menu-btn" id="header-more-btn" title="Meeting Information" style="background:none; border:none; color:#94a3b8; font-size:20px; cursor:pointer; padding:4px; margin-left: 8px; transition: color var(--transition-fast);" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#94a3b8'">⋮</button>
     </div>
-    <div style="color:#888;font-size:13px" id="participant-count">1 participant</div>
   </div>
-</div>
 
-<div class="video-grid" id="video-grid">
-  <div class="video-wrapper" id="local-wrapper" style="position: relative;">
-    <video id="local-video" autoplay muted playsinline></video>
-    <div id="local-avatar" style="position: absolute; inset: 0; display: none; align-items: center; justify-content: center; background: #1e293b; flex-direction: column; gap: 8px; z-index: 2;">
-      <div style="width: 72px; height: 72px; border-radius: 50%; background: #3b82f6; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: bold; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
-        {{ user.username|slice:":1"|upper }}
+  <!-- Main Stage & Panels Container -->
+  <div class="main-stage-container">
+    <!-- Video grid stage -->
+    <div class="video-grid" id="video-grid">
+      <div class="video-wrapper" id="local-wrapper">
+        <video id="local-video" autoplay muted playsinline></video>
+        <div id="local-avatar" class="video-avatar">
+          <div class="avatar-circle">
+            {{ user.username|slice:":1"|upper }}
+          </div>
+          <span class="avatar-text">Camera Off</span>
+        </div>
+        <div class="video-label" id="label-local">
+          You · {{ user.username }}
+          {% if is_host %}<span class="host-badge">Host</span>{% endif %}
+        </div>
+        <button class="pin-btn" onclick="togglePin('local')" title="Pin video">📌</button>
       </div>
-      <span style="color: #94a3b8; font-size: 13px; font-weight: 500;">Camera Off</span>
     </div>
-    <div class="video-label">You ({{ user.username }})</div>
-    <button class="pin-btn" onclick="togglePin('local')" style="position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.6); color: white; border: none; border-radius: 4px; padding: 4px 8px; cursor: pointer; z-index: 5;">📌</button>
-  </div>
-</div>
 
-<div class="status-bar" id="status-bar"></div>
-
-<div class="controls">
-  <button class="ctrl-btn" id="mic-btn" title="Mute/Unmute (M)">🎤</button>
-  <button class="ctrl-btn" id="cam-btn" title="Camera on/off (V)">📷</button>
-  <button class="ctrl-btn" id="screen-btn" title="Share screen (S)">🖥️</button>
-  <button class="ctrl-btn" id="chat-btn" title="Chat (C)" style="position: relative;">
-    💬
-    <span id="chat-badge" style="position: absolute; top: 0; right: 0; width: 12px; height: 12px; background-color: #ef4444; border-radius: 50%; display: none; border: 2px solid #1a1a1a;"></span>
-  </button>
-  <button class="ctrl-btn" id="participants-btn" title="Participants">👥</button>
-  <button class="ctrl-btn" id="raise-hand-btn" title="Raise Hand">✋</button>
-  <button class="ctrl-btn" id="reactions-btn" title="Reactions" style="position:relative;">😀</button>
-  <button class="ctrl-btn" id="transcript-btn" title="Live Captions">📝</button>
-  {% if is_host %}
-  <a href="{% url 'end_meeting' room_code %}" class="end-btn">End Meeting</a>
-  {% else %}
-  <a href="{% url 'leave_meeting' room_code %}" class="end-btn" style="background:#6b7280">Leave</a>
-  {% endif %}
-</div>
-
-<!-- Emoji Reaction Picker -->
-<div id="reaction-picker" style="display:none;position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#1e1e1e;border:1px solid #333;border-radius:16px;padding:10px 16px;z-index:30;display:none;gap:8px;">
-  <span class="react-emoji" data-emoji="👍" title="Thumbs up">👍</span>
-  <span class="react-emoji" data-emoji="❤️" title="Heart">❤️</span>
-  <span class="react-emoji" data-emoji="😂" title="Laugh">😂</span>
-  <span class="react-emoji" data-emoji="🎉" title="Party">🎉</span>
-  <span class="react-emoji" data-emoji="😮" title="Wow">😮</span>
-  <span class="react-emoji" data-emoji="👏" title="Clap">👏</span>
-  <span class="react-emoji" data-emoji="🔥" title="Fire">🔥</span>
-</div>
-<style>
-  .react-emoji { font-size:28px; cursor:pointer; transition:transform 0.15s; user-select:none; }
-  .react-emoji:hover { transform:scale(1.35); }
-  @keyframes floatUp {
-    0%   { opacity:1; transform:translateY(0) scale(1); }
-    100% { opacity:0; transform:translateY(-120px) scale(1.8); }
-  }
-  .floating-emoji { position:fixed; font-size:40px; pointer-events:none; z-index:50; animation:floatUp 2s ease-out forwards; }
-  .raise-hand-indicator { position:absolute; top:4px; right:4px; font-size:16px; }
-  @keyframes pulseHand {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.08); }
-    100% { transform: scale(1); }
-  }
-  @keyframes popReaction {
-    0% { transform: scale(0.5); opacity: 0; }
-    70% { transform: scale(1.2); }
-    100% { transform: scale(1); opacity: 1; }
-  }
-  @keyframes slideDown {
-    0% { transform: translate(-50%, -20px); opacity: 0; }
-    100% { transform: translate(-50%, 0); opacity: 1; }
-  }
-</style>
-
-<div id="chat-panel" style="position:fixed; top:60px; right:0; bottom:80px; width:300px; background:#1a1a1a; border-left:1px solid #333; display:none; flex-direction:column; z-index:15;">
-    <div style="padding:12px 16px; border-bottom:1px solid #333; color:#fff; font-size:14px; font-weight:500; display:flex; justify-content:space-between; align-items:center;">
-        Chat
-        <span id="close-chat" style="cursor:pointer; color:#888; font-size:18px;">×</span>
-    </div>
-    <div id="chat-messages" style="flex:1; overflow-y:auto; padding:12px 16px; display:flex; flex-direction:column; gap:10px;">
+    <!-- Sliding Chat Panel -->
+    <div id="chat-panel" class="side-panel">
+      <div class="panel-header">
+        <span>Chat</span>
+        <span id="close-chat" class="panel-close">×</span>
+      </div>
+      <div id="chat-messages" class="chat-messages-container">
         {% for msg in chat_messages %}
-        <div id="chat-msg-db-{{ msg.id }}" style="font-size:13px;">
-            <span style="color:#60a5fa; font-weight:500;">{{ msg.sender.username }}</span>
-            <span style="color:#666; font-size:11px;"> {{ msg.timestamp|time:"H:i" }}</span>
-            <div style="color:#ddd; margin-top:2px;">{{ msg.message }}</div>
+        <div id="chat-msg-db-{{ msg.id }}" class="chat-bubble-row {% if msg.sender == user %}me{% endif %}">
+          <div class="chat-bubble-avatar">{{ msg.sender.username|slice:":1"|upper }}</div>
+          <div class="chat-bubble-content">
+            <div class="chat-bubble-meta">
+              <span class="chat-bubble-sender">{{ msg.sender.username }}</span>
+              <span class="chat-bubble-time">{{ msg.timestamp|time:"H:i" }}</span>
+            </div>
+            <div class="chat-bubble-text">{{ msg.message }}</div>
+          </div>
         </div>
         {% endfor %}
+      </div>
+      <!-- Typing Indicator -->
+      <div id="typing-indicator" style="height:20px; padding:0 20px 8px; font-size:11px; color:#94a3b8; font-style:italic; display:none;"></div>
+      
+      <div class="chat-input-area">
+        <input id="chat-input" type="text" placeholder="Type a message..." class="chat-input-field" />
+        <button id="send-chat-btn" class="chat-send-btn" title="Send message">➤</button>
+      </div>
     </div>
-    <div style="padding:12px; border-top:1px solid #333; display:flex; gap:8px;">
-        <input id="chat-input" type="text" placeholder="Type a message..." style="flex:1; padding:8px 10px; border-radius:6px; border:1px solid #444; background:#222; color:#fff; font-size:13px;" />
-        <button id="send-chat-btn" style="padding:8px 14px; background:#2563eb; color:#fff; border:none; border-radius:6px; cursor:pointer; font-size:13px;">Send</button>
+
+    <!-- Sliding Participants Panel -->
+    <div id="participants-panel" class="side-panel">
+      <div class="panel-header">
+        <span>Participants</span>
+        <span id="close-participants" class="panel-close">×</span>
+      </div>
+      <div id="participant-list" class="chat-messages-container" style="gap: 12px; padding: 20px 24px;">
+        <!-- Dynamically filled -->
+      </div>
     </div>
-    <!-- Typing indicator — additive only -->
-    <div id="typing-indicator" style="height:20px;padding:0 16px 4px;font-size:11px;color:#888;font-style:italic;display:none;"></div>
+    <!-- Captions Overlay Container -->
+    <div id="captions-overlay"></div>
+  </div>
+
+  <!-- Keyboard shortcut hint bar -->
+  <div id="shortcut-hint" style="position:fixed; bottom:96px; left:24px; background:rgba(15,23,42,0.85); backdrop-filter:blur(8px); border:1px solid var(--border-glass); color:#94a3b8; font-size:11px; padding:8px 12px; border-radius:8px; z-index:99; pointer-events:none; box-shadow: 0 4px 12px rgba(0,0,0,0.25);">
+    <kbd style="background:#1e293b; border:1px solid rgba(255,255,255,0.1); border-radius:3px; padding:2px 6px; color:#fff; font-family:inherit;">M</kbd> Mic &nbsp;
+    <kbd style="background:#1e293b; border:1px solid rgba(255,255,255,0.1); border-radius:3px; padding:2px 6px; color:#fff; font-family:inherit;">V</kbd> Cam &nbsp;
+    <kbd style="background:#1e293b; border:1px solid rgba(255,255,255,0.1); border-radius:3px; padding:2px 6px; color:#fff; font-family:inherit;">S</kbd> Screen &nbsp;
+    <kbd style="background:#1e293b; border:1px solid rgba(255,255,255,0.1); border-radius:3px; padding:2px 6px; color:#fff; font-family:inherit;">C</kbd> Chat &nbsp;
+    <kbd style="background:#1e293b; border:1px solid rgba(255,255,255,0.1); border-radius:3px; padding:2px 6px; color:#fff; font-family:inherit;">H</kbd> Hand
+  </div>
+
+  <!-- Emoji Reaction Picker -->
+  <div id="reaction-picker" style="display:none; position:fixed; bottom:84px; left:50%; transform:translateX(-50%); background:rgba(18,24,38,0.9); backdrop-filter:blur(12px); border:1px solid var(--border-glass); border-radius:24px; padding:10px 18px; z-index:150; gap:12px; box-shadow: var(--shadow-premium);">
+    <span class="react-emoji" data-emoji="👍" title="Thumbs up">👍</span>
+    <span class="react-emoji" data-emoji="❤️" title="Heart">❤️</span>
+    <span class="react-emoji" data-emoji="😂" title="Laugh">😂</span>
+    <span class="react-emoji" data-emoji="🎉" title="Party">🎉</span>
+    <span class="react-emoji" data-emoji="😮" title="Wow">😮</span>
+    <span class="react-emoji" data-emoji="👏" title="Clap">👏</span>
+    <span class="react-emoji" data-emoji="🔥" title="Fire">🔥</span>
+  </div>
+
+  <!-- Unified Bottom Control Dock -->
+  <div class="controls">
+    <button class="ctrl-btn" id="mic-btn" title="Mute/Unmute (M)">🎤</button>
+    <button class="ctrl-btn" id="cam-btn" title="Camera on/off (V)">📷</button>
+    <button class="ctrl-btn" id="screen-btn" title="Share screen (S)">🖥️</button>
+    <button class="ctrl-btn" id="chat-btn" title="Chat (C)" style="position: relative;">
+      💬
+      <span id="chat-badge" style="position: absolute; top: 2px; right: 2px; width: 10px; height: 10px; background-color: #ef4444; border-radius: 50%; display: none; border: 2px solid #121826;"></span>
+    </button>
+    <button class="ctrl-btn" id="participants-btn" title="Participants">👥</button>
+    <button class="ctrl-btn" id="raise-hand-btn" title="Raise Hand">✋</button>
+    <button class="ctrl-btn" id="reactions-btn" title="Reactions">😀</button>
+    <button class="ctrl-btn" id="transcript-btn" title="Live Captions">CC</button>
+    <button class="ctrl-btn" id="more-btn" title="More Options">⋮</button>
+    
+    <div style="width: 1px; height: 24px; background-color: rgba(255,255,255,0.15); margin: 0 4px;"></div>
+    
+    {% if is_host %}
+    <a href="{% url 'end_meeting' room_code %}" class="end-btn" id="leave-btn">End Meeting</a>
+    {% else %}
+    <a href="{% url 'leave_meeting' room_code %}" class="end-btn" id="leave-btn">Leave</a>
+    {% endif %}
+  </div>
 </div>
 
-<div id="participants-panel" style="position:fixed; top:60px; right:0; bottom:80px; width:300px; background:#1a1a1a; border-left:1px solid #333; display:none; flex-direction:column; z-index:15;">
-    <div style="padding:12px 16px; border-bottom:1px solid #333; color:#fff; font-size:14px; font-weight:500; display:flex; justify-content:space-between; align-items:center;">
-        Participants
-        <span id="close-participants" style="cursor:pointer; color:#888; font-size:18px;">×</span>
-    </div>
-    <div id="participant-list" style="flex:1; overflow-y:auto; padding:12px 16px; display:flex; flex-direction:column; gap:10px;">
-        <!-- Filled dynamically -->
-    </div>
+<!-- Context Popover for More menu -->
+<div id="more-menu-popover" class="more-menu-popover" style="display:none; position:fixed; bottom:84px; z-index:150; background:rgba(18,24,38,0.95); backdrop-filter:blur(16px); border:1px solid var(--border-glass); border-radius:12px; padding:8px 0; width:180px; box-shadow: var(--shadow-premium);">
+  <div class="more-menu-item" id="more-settings-btn"><span style="margin-right:8px;">⚙️</span> Settings</div>
+  <div class="more-menu-item" id="more-details-btn"><span style="margin-right:8px;">ℹ️</span> Meeting details</div>
 </div>
 
-<!-- Keyboard shortcut hint bar — additive only -->
-<div id="shortcut-hint" style="position:fixed;bottom:90px;left:16px;background:rgba(0,0,0,0.6);color:#aaa;font-size:11px;padding:6px 10px;border-radius:8px;z-index:9;line-height:1.8;pointer-events:none;">
-  <kbd style="background:#333;border-radius:3px;padding:1px 5px;color:#fff;">M</kbd> Mic &nbsp;
-  <kbd style="background:#333;border-radius:3px;padding:1px 5px;color:#fff;">V</kbd> Cam &nbsp;
-  <kbd style="background:#333;border-radius:3px;padding:1px 5px;color:#fff;">S</kbd> Screen &nbsp;
-  <kbd style="background:#333;border-radius:3px;padding:1px 5px;color:#fff;">C</kbd> Chat &nbsp;
-  <kbd style="background:#333;border-radius:3px;padding:1px 5px;color:#fff;">H</kbd> Hand
+<!-- Details Modal -->
+<div id="details-modal" class="modal-overlay" style="display: none;">
+  <div class="modal-container">
+    <div class="modal-header">
+      <h3 style="margin:0; color:#fff; font-size:14px; font-weight: 600;">Meeting Details</h3>
+      <span class="modal-close" onclick="closeModal('details-modal')">×</span>
+    </div>
+    <div class="modal-body" style="padding:16px 20px; display:flex; flex-direction:column; gap:12px;">
+      <div><strong style="color:#94a3b8; font-size:11px;">TITLE</strong><div style="color:#f8fafc; font-size:13px; margin-top:2px;">{{ meeting.title }}</div></div>
+      <div><strong style="color:#94a3b8; font-size:11px;">ROOM CODE</strong><div style="color:#f8fafc; font-size:13px; margin-top:2px;">{{ room_code }}</div></div>
+      <div>
+        <strong style="color:#94a3b8; font-size:11px;">INVITE LINK</strong>
+        <div style="display:flex; gap:8px; margin-top:4px;">
+          <input type="text" readonly value="{{ request.build_absolute_uri }}" id="modal-invite-link" style="flex:1; background:#0b0f19; border:1px solid var(--border-glass); border-radius:6px; color:#fff; padding:6px 10px; font-size:12px; outline:none;" />
+          <button onclick="copyModalLink()" style="background:var(--primary); color:#fff; border:none; border-radius:6px; padding:0 12px; font-size:12px; font-weight:600; cursor:pointer;">Copy</button>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
-<div id="captions-overlay"
-     style="position:fixed; bottom:90px; left:50%; transform:translateX(-50%);
-            background:rgba(0,0,0,0.82); color:#fff; padding:10px 22px;
-            border-radius:10px; font-size:17px; max-width:75%; text-align:center;
-            display:none; z-index:20; line-height:1.6;">
+<!-- Settings Modal -->
+<div id="settings-modal" class="modal-overlay" style="display: none;">
+  <div class="modal-container">
+    <div class="modal-header">
+      <h3 style="margin:0; color:#fff; font-size:14px; font-weight: 600;">Settings</h3>
+      <span class="modal-close" onclick="closeModal('settings-modal')">×</span>
+    </div>
+    <div class="modal-body" style="padding:16px 20px; display:flex; flex-direction:column; gap:12px; color:#e2e8f0; font-size:13px;">
+      <div>
+        <label style="color:#94a3b8; font-size:11px; display:block; margin-bottom:4px;">AUDIO SOURCE</label>
+        <select style="width:100%; background:#0b0f19; border:1px solid var(--border-glass); border-radius:6px; color:#fff; padding:8px; font-size:12px; outline:none;">
+          <option>Default microphone</option>
+        </select>
+      </div>
+      <div>
+        <label style="color:#94a3b8; font-size:11px; display:block; margin-bottom:4px;">VIDEO SOURCE</label>
+        <select style="width:100%; background:#0b0f19; border:1px solid var(--border-glass); border-radius:6px; color:#fff; padding:8px; font-size:12px; outline:none;">
+          <option>Default camera</option>
+        </select>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script src="{% static 'js/simplepeer.min.js' %}"></script>
@@ -372,17 +541,22 @@
       const isHandRaised = p.raised_hand || (isMe && handRaised);
       const div = document.createElement('div');
       div.id = `participant-user-${p.user_id}`;
-      div.style.cssText = 'display:flex;justify-content:space-between;align-items:center;color:#fff;font-size:14px;margin-bottom:8px;padding:6px 8px;border-radius:4px;background:rgba(255,255,255,0.05);';
+      div.className = 'participant-item';
+      div.style.cssText = 'display:flex; justify-content:space-between; align-items:center; color:#fff; font-size:13px; margin-bottom:8px; padding:8px 12px; border-radius:8px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.04);';
 
+      const initial = p.username.charAt(0).toUpperCase();
       const nameLabel = isMe ? `${p.username} (You)` : p.username;
-      const hostBadge = p.is_host ? '<span style="background:#3b82f6;color:#fff;font-size:10px;font-weight:700;padding:1px 5px;border-radius:4px;margin-left:4px;">👑 Host</span>' : '';
-      const handBadge = isHandRaised ? '<span style="background:#f59e0b;color:#000;font-size:11px;font-weight:700;padding:1px 5px;border-radius:10px;margin-left:4px;">✋ Hand Raised</span>' : '';
+      const hostBadge = p.is_host ? '<span class="host-badge">Host</span>' : '';
+      const handBadge = isHandRaised ? '<span style="background:#f59e0b; color:#000; font-size:9px; font-weight:700; padding:1px 5px; border-radius:10px; margin-left:4px; text-transform:uppercase;">✋ Raised</span>' : '';
 
       div.innerHTML = `
-        <span style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;">
-          👤 <strong>${nameLabel}</strong> ${hostBadge} ${handBadge}
+        <span style="display:flex; align-items:center; gap:8px;">
+          <div style="width:24px; height:24px; border-radius:50%; background:var(--primary); color:#fff; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700;">${initial}</div>
+          <span style="display:flex; align-items:center; gap:4px; flex-wrap:wrap;">
+            <strong>${nameLabel}</strong> ${hostBadge} ${handBadge}
+          </span>
         </span>
-        <span style="font-size:16px;">${p.muted ? '🔇' : '🎤'}</span>
+        <span style="font-size:14px; opacity:0.8;">${p.muted ? '🔇' : '🎤'}</span>
       `;
       list.appendChild(div);
     });
@@ -397,13 +571,14 @@
     }
 
     if (targetWrapper) {
+      targetWrapper.classList.toggle('hand-raised-glow', isRaised);
       let ind = targetWrapper.querySelector('.raise-hand-indicator');
       if (isRaised) {
         if (!ind) {
           ind = document.createElement('span');
           ind.className = 'raise-hand-indicator';
-          ind.style.cssText = 'position:absolute;top:8px;left:8px;background:#f59e0b;color:#000;font-size:18px;padding:4px 8px;border-radius:20px;font-weight:bold;z-index:6;box-shadow:0 2px 8px rgba(0,0,0,0.5);display:flex;align-items:center;gap:4px;animation:pulseHand 1.5s infinite;';
-          ind.innerHTML = '✋ <span style="font-size:11px;text-transform:uppercase;letter-spacing:0.5px;">Hand Raised</span>';
+          ind.style.cssText = 'position:absolute;top:12px;left:12px;background:#f59e0b;color:#000;padding:4px;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:12px;z-index:6;box-shadow:0 2px 8px rgba(0,0,0,0.3);animation:pulseHand 1.5s infinite;';
+          ind.innerHTML = '✋';
           targetWrapper.appendChild(ind);
         }
       } else {
@@ -474,13 +649,19 @@
   function addOrUpdateRemoteVideo(userId, username, channel, isHost, cameraOn) {
     if (userId === USER_ID) return;
     let wrapper = document.getElementById(`wrapper-user-${userId}`);
-    const isCamOn = cameraOn !== undefined ? cameraOn : true;
+    
+    // Resolve cameraOn state from participantsMap if available to prevent signal overrides
+    let isCamOn = true;
+    if (participantsMap.has(userId)) {
+      isCamOn = participantsMap.get(userId).camera_on;
+    } else if (cameraOn !== undefined) {
+      isCamOn = cameraOn;
+    }
 
     if (!wrapper) {
       wrapper = document.createElement('div');
       wrapper.className = 'video-wrapper';
       wrapper.id = `wrapper-user-${userId}`;
-      wrapper.style.position = 'relative';
 
       const video = document.createElement('video');
       video.id = `video-user-${userId}`;
@@ -494,22 +675,22 @@
       const avatar = document.createElement('div');
       avatar.className = 'video-avatar';
       avatar.id = `avatar-user-${userId}`;
-      avatar.style.cssText = 'position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:#1e293b;flex-direction:column;gap:8px;z-index:2;';
       avatar.innerHTML = `
-        <div style="width:72px;height:72px;border-radius:50%;background:#3b82f6;color:#fff;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:bold;box-shadow:0 4px 12px rgba(0,0,0,0.3);">
+        <div class="avatar-circle">
           ${initial}
         </div>
-        <span style="color:#94a3b8;font-size:13px;font-weight:500;">Camera Off</span>
+        <span class="avatar-text">Camera Off</span>
       `;
 
       const label = document.createElement('div');
       label.className = 'video-label';
       label.id = `label-user-${userId}`;
-      label.innerHTML = `${username} ${isHost ? '<span style="color:#60a5fa;font-size:10px;">(Host)</span>' : ''}`;
+      label.innerHTML = `${username} ${isHost ? '<span class="host-badge">Host</span>' : ''}`;
 
       const pinBtn = document.createElement('button');
       pinBtn.innerHTML = '📌';
-      pinBtn.style.cssText = 'position:absolute;top:8px;right:8px;background:rgba(0,0,0,0.6);color:white;border:none;border-radius:4px;padding:4px 8px;cursor:pointer;z-index:5;';
+      pinBtn.className = 'pin-btn';
+      pinBtn.title = 'Pin video';
       pinBtn.onclick = () => togglePin(`user-${userId}`);
 
       wrapper.appendChild(video);
@@ -520,7 +701,7 @@
     } else {
       const label = document.getElementById(`label-user-${userId}`);
       if (label) {
-        label.innerHTML = `${username} ${isHost ? '<span style="color:#60a5fa;font-size:10px;">(Host)</span>' : ''}`;
+        label.innerHTML = `${username} ${isHost ? '<span class="host-badge">Host</span>' : ''}`;
       }
     }
 
@@ -532,6 +713,9 @@
     if (channel) {
       channelToUserId.set(channel, userId);
     }
+
+    // Force rebuild layout to put items in the correct containers (spotlight / grid)
+    rebuildGridLayout();
   }
 
   function removeRemoteVideo(userId, channel) {
@@ -542,6 +726,9 @@
     }
     const wrapper = document.getElementById(`wrapper-user-${userId}`);
     if (wrapper) wrapper.remove();
+
+    // Rebuild layout to align grid rows/columns
+    rebuildGridLayout();
   }
 
   // ============================================================
@@ -586,11 +773,16 @@
       wrappers.forEach(w => {
         const isPinned = (w.id === 'local-wrapper' && pinnedId === 'local') ||
                          (w.id === `wrapper-${pinnedId}`);
-        w.style.border = isPinned ? '3px solid #3b82f6' : '';
+        w.style.border = '';
+        w.classList.toggle('pinned-speaker', isPinned);
         (isPinned ? main : strip).appendChild(w);
       });
     } else {
-      wrappers.forEach(w => { w.style.border = ''; grid.appendChild(w); });
+      wrappers.forEach(w => {
+        w.style.border = '';
+        w.classList.remove('pinned-speaker');
+        grid.appendChild(w);
+      });
     }
   }
 
@@ -815,8 +1007,10 @@
   // TRANSLATION CACHE & HELPER
   // ============================================================
   const translationCache = new Map();
+  const translationDebounceTimers = new Map();
+  const activeTranslationControllers = new Map();
 
-  async function translateText(text, sourceLang, targetLang) {
+  async function translateText(text, sourceLang, targetLang, abortSignal) {
     if (!text || !text.trim() || !targetLang || targetLang === 'original') return text;
     const src = sourceLang && sourceLang !== 'auto' ? shortLangCode(sourceLang) : 'auto';
     const tgt = shortLangCode(targetLang);
@@ -831,7 +1025,8 @@
       const res = await fetch('/meetings/translate/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
-        body: JSON.stringify({ text: text.trim(), source_lang: src, target_lang: tgt })
+        body: JSON.stringify({ text: text.trim(), source_lang: src, target_lang: tgt }),
+        signal: abortSignal
       });
       if (!res.ok) return text;
       const d = await res.json();
@@ -843,9 +1038,54 @@
       translationCache.set(cacheKey, translated);
       return translated;
     } catch(e) {
+      if (e.name === 'AbortError') {
+        throw e;
+      }
       console.warn('[Translation] Error:', e);
       return text;
     }
+  }
+
+  function doTranslation(text, sourceLang, targetLang, speakerName, speakerSafeId, isFinal) {
+    if (!text || !text.trim()) return;
+    const srcShort = shortLangCode(sourceLang);
+    const tgtShort = shortLangCode(targetLang);
+    const cacheKey = `${srcShort}:${tgtShort}:${text.trim()}`;
+
+    if (translationCache.has(cacheKey)) {
+      showPeerCaption(speakerName, translationCache.get(cacheKey), isFinal);
+      return;
+    }
+
+    // Abort any existing pending translation request for this speaker to prevent concurrency backlog
+    if (activeTranslationControllers.has(speakerSafeId)) {
+      try {
+        activeTranslationControllers.get(speakerSafeId).abort();
+      } catch(e) {}
+    }
+
+    const controller = new AbortController();
+    activeTranslationControllers.set(speakerSafeId, controller);
+
+    translateText(text, sourceLang, targetLang, controller.signal)
+      .then(translated => {
+        if (activeTranslationControllers.get(speakerSafeId) === controller) {
+          activeTranslationControllers.delete(speakerSafeId);
+          if (captionEnabled && translated) {
+            showPeerCaption(speakerName, translated, isFinal);
+          }
+        }
+      })
+      .catch(err => {
+        if (err.name === 'AbortError') {
+          console.log(`[Translation] Aborted request for ${speakerName}`);
+        } else {
+          console.warn('[Translation] Fetch error:', err);
+          if (activeTranslationControllers.get(speakerSafeId) === controller) {
+            activeTranslationControllers.delete(speakerSafeId);
+          }
+        }
+      });
   }
 
   // ============================================================
@@ -997,12 +1237,13 @@
   function updateTranscriptionButton() {
     const btn = document.getElementById('transcript-btn');
     if (!btn) return;
-    btn.textContent      = captionEnabled ? '🔴 Captions ON' : '📝 Captions OFF';
+    btn.classList.toggle('active', captionEnabled);
+    btn.innerHTML        = 'CC';
     btn.title            = captionEnabled ? 'Captions are ON — click to hide' : 'Captions are OFF — click to show';
-    btn.style.background = captionEnabled ? '#16a34a' : '#4b5563';
-    btn.style.width      = 'auto';
-    btn.style.padding    = '0 12px';
-    btn.style.fontSize   = '12px';
+    btn.style.background = '';
+    btn.style.width      = '';
+    btn.style.padding    = '';
+    btn.style.fontSize   = '';
   }
 
   // ============================================================
@@ -1094,9 +1335,21 @@
 
     const div  = document.createElement('div');
     if (messageId) div.id = `chat-msg-${messageId}`;
-    div.style.cssText = 'font-size:13px;margin-bottom:8px;';
+    
+    const isMe = (sender === USERNAME);
+    div.className = 'chat-bubble-row' + (isMe ? ' me' : '');
+    
     const time = new Date(timeVal).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    div.innerHTML = `<span style="color:#60a5fa;font-weight:500">${sender}</span> <span style="color:#666;font-size:11px"> ${time}</span><div style="color:#ddd;margin-top:2px">${rawMsg}</div>`;
+    div.innerHTML = `
+      <div class="chat-bubble-avatar">${sender.charAt(0).toUpperCase()}</div>
+      <div class="chat-bubble-content">
+        <div class="chat-bubble-meta">
+          <span class="chat-bubble-sender">${sender}</span>
+          <span class="chat-bubble-time">${time}</span>
+        </div>
+        <div class="chat-bubble-text">${rawMsg}</div>
+      </div>
+    `;
     chatMessages.appendChild(div);
     chatMessages.scrollTop = chatMessages.scrollHeight;
   }
@@ -1175,6 +1428,23 @@
 
       if (data.type === 'existing-members') {
         if (data.members && Array.isArray(data.members)) {
+          // Identify all user IDs that are in the new existing-members list
+          const activeUserIds = new Set();
+          data.members.forEach(m => {
+            const uId = String(m.user_id || m.user);
+            if (uId !== USER_ID && m.user !== USERNAME) {
+              activeUserIds.add(uId);
+            }
+          });
+
+          // Prune stale participant wrapper elements and delete from map
+          participantsMap.forEach((p, uId) => {
+            if (!p.is_local && !activeUserIds.has(uId)) {
+              participantsMap.delete(uId);
+              removeRemoteVideo(uId);
+            }
+          });
+
           data.members.forEach(m => {
             const uId = String(m.user_id || m.user);
             if (uId === USER_ID || m.user === USERNAME) return;
@@ -1207,6 +1477,7 @@
         }
         updateCount();
         if (data.screen_sharer) { screenSharingId = data.screen_sharer; pin(data.screen_sharer); }
+        rebuildGridLayout();
         return;
       }
 
@@ -1234,6 +1505,7 @@
           getOrCreatePeer(data.channel, false, uId);
         }
         updateCount();
+        rebuildGridLayout();
         return;
       }
 
@@ -1331,19 +1603,32 @@
 
         if (!captionEnabled) return;
 
+        const speakerSafeId = 'caption-peer-' + speakerName.replace(/[^a-zA-Z0-9_-]/g, '_');
+        const isFinal = (data.is_final !== false);
+
         if (captionLanguage === 'original' || !tgtShort || tgtShort === 'auto' || srcShort === tgtShort) {
-          showPeerCaption(speakerName, data.text, data.is_final !== false);
+          if (translationDebounceTimers.has(speakerSafeId)) {
+            clearTimeout(translationDebounceTimers.get(speakerSafeId));
+            translationDebounceTimers.delete(speakerSafeId);
+          }
+          showPeerCaption(speakerName, data.text, isFinal);
         } else {
-          const cacheKey = `${srcShort}:${tgtShort}:${data.text.trim()}`;
-          if (translationCache.has(cacheKey)) {
-            showPeerCaption(speakerName, translationCache.get(cacheKey), data.is_final !== false);
+          if (isFinal) {
+            if (translationDebounceTimers.has(speakerSafeId)) {
+              clearTimeout(translationDebounceTimers.get(speakerSafeId));
+              translationDebounceTimers.delete(speakerSafeId);
+            }
+            doTranslation(data.text, detectedLang, tgtShort, speakerName, speakerSafeId, true);
           } else {
             showPeerCaption(speakerName, data.text, false);
-            translateText(data.text, detectedLang, tgtShort).then(translated => {
-              if (captionEnabled && translated) {
-                showPeerCaption(speakerName, translated, data.is_final !== false);
-              }
-            });
+            if (translationDebounceTimers.has(speakerSafeId)) {
+              clearTimeout(translationDebounceTimers.get(speakerSafeId));
+            }
+            const timer = setTimeout(() => {
+              translationDebounceTimers.delete(speakerSafeId);
+              doTranslation(data.text, detectedLang, tgtShort, speakerName, speakerSafeId, false);
+            }, 800);
+            translationDebounceTimers.set(speakerSafeId, timer);
           }
         }
         return;
@@ -1464,6 +1749,12 @@
     try {
       localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       document.getElementById('local-video').srcObject = localStream;
+      
+      const localAvatar = document.getElementById('local-avatar');
+      if (localAvatar) {
+        localAvatar.style.display = camOn ? 'none' : 'flex';
+      }
+
       setStatus('Camera & Mic ready');
       startSpeakerDetection(localStream);
       startTranscription();
@@ -1632,7 +1923,8 @@
   document.getElementById('raise-hand-btn').addEventListener('click', () => {
     handRaised = !handRaised;
     const btn = document.getElementById('raise-hand-btn');
-    btn.style.background = handRaised ? '#f59e0b' : '#333';
+    btn.classList.toggle('active', handRaised);
+    btn.style.background = '';
     btn.title = handRaised ? 'Lower Hand' : 'Raise Hand';
     updateVideoWrapperHandIndicator(USER_ID, handRaised);
     if (participantsMap.has(USER_ID)) {
@@ -1678,7 +1970,7 @@
     el.className = 'floating-emoji';
     el.textContent = emoji;
     el.style.left  = `${20 + Math.random() * 60}vw`;
-    el.style.bottom = '90px';
+    el.style.bottom = '84px';
     el.title = `${user} reacted`;
     document.body.appendChild(el);
     setTimeout(() => el.remove(), 2200);
@@ -1731,6 +2023,77 @@
     shortcutHint.style.opacity = '0';
     setTimeout(() => { shortcutHint.style.display = 'none'; }, 1000);
   }, 8000);
+
+  // Modal helpers
+  window.openModal = function(id) {
+    const modal = document.getElementById(id);
+    if (modal) modal.style.display = 'flex';
+  };
+
+  window.closeModal = function(id) {
+    const modal = document.getElementById(id);
+    if (modal) modal.style.display = 'none';
+  };
+
+  window.copyModalLink = function() {
+    const input = document.getElementById('modal-invite-link');
+    if (input) {
+      input.select();
+      navigator.clipboard.writeText(input.value)
+        .then(() => setStatus('Invite link copied!'))
+        .catch(() => setStatus('Failed to copy link.'));
+    }
+  };
+
+  // Toggle More menu popover
+  const moreBtn = document.getElementById('more-btn');
+  const morePopover = document.getElementById('more-menu-popover');
+  if (moreBtn && morePopover) {
+    moreBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const rect = moreBtn.getBoundingClientRect();
+      morePopover.style.left = `${rect.left + (rect.width/2) - 90}px`;
+      morePopover.style.bottom = `${window.innerHeight - rect.top + 12}px`;
+      const isVisible = morePopover.style.display === 'block';
+      morePopover.style.display = isVisible ? 'none' : 'block';
+    });
+    document.addEventListener('click', () => { morePopover.style.display = 'none'; });
+    morePopover.addEventListener('click', e => e.stopPropagation());
+  }
+
+  // Attach settings and details trigger
+  const detailsBtn = document.getElementById('more-details-btn');
+  if (detailsBtn) {
+    detailsBtn.addEventListener('click', () => {
+      morePopover.style.display = 'none';
+      openModal('details-modal');
+    });
+  }
+
+  const settingsBtn = document.getElementById('more-settings-btn');
+  if (settingsBtn) {
+    settingsBtn.addEventListener('click', () => {
+      morePopover.style.display = 'none';
+      openModal('settings-modal');
+    });
+  }
+
+  const headerMoreBtn = document.getElementById('header-more-btn');
+  if (headerMoreBtn) {
+    headerMoreBtn.addEventListener('click', () => {
+      openModal('details-modal');
+    });
+  }
+
+  // Speaker active highlight detection update local wrapper class
+  let localAudioInterval = setInterval(() => {
+    if (!audioAnalyser || !audioDataArray) return;
+    const avg = getMicVolumeLevel();
+    const localWrapper = document.getElementById('local-wrapper');
+    if (localWrapper) {
+      localWrapper.classList.toggle('active-speaker', avg > 30);
+    }
+  }, 500);
 
   // ============================================================
   // START
