@@ -467,18 +467,26 @@
             letter-spacing: -0.02em;
         }
 
-        /* Row Layout */
+        /* ── MEETING ROW & CARD LAYOUT ─────────────────────────── */
         .db-mtg-row {
             display: flex;
             align-items: center;
             gap: 1.5rem;
             padding: 1.125rem 1.75rem;
             border-bottom: 1px solid #f1f5f9;
-            transition: background-color var(--transition-fast);
+            transition: background-color var(--transition-fast), opacity 0.3s ease, transform 0.3s ease, max-height 0.3s ease;
         }
         .db-mtg-row:last-child { border-bottom: none; }
         .db-mtg-row:hover {
             background-color: #f8fafc;
+        }
+
+        .db-mtg-primary {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex: 1;
+            min-width: 0;
         }
 
         .db-mtg-icon {
@@ -532,6 +540,13 @@
         }
         .db-mtg-date svg { width: 16px; height: 16px; color: #94a3b8; }
 
+        .db-mtg-badges {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
         .db-role-pill {
             display: inline-flex;
             align-items: center;
@@ -541,7 +556,7 @@
             border-radius: 9999px;
             white-space: nowrap;
             flex-shrink: 0;
-            min-width: 80px;
+            min-width: 70px;
             justify-content: center;
         }
         .db-role-active      { background: #d1fae5; color: #065f46; }
@@ -574,6 +589,7 @@
             align-items: center;
             gap: 0.5rem;
             position: relative;
+            flex-shrink: 0;
         }
 
         .db-details-link {
@@ -598,8 +614,8 @@
         }
 
         .db-action-dropdown-btn {
-            width: 32px;
-            height: 32px;
+            width: 34px;
+            height: 34px;
             border-radius: 8px;
             background: none;
             border: 1px solid transparent;
@@ -626,7 +642,7 @@
             background: #fff;
             border: 1px solid var(--border-color);
             border-radius: 10px;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
             z-index: 50;
             min-width: 160px;
             overflow: hidden;
@@ -668,15 +684,16 @@
         .db-modal-overlay {
             position: fixed;
             inset: 0;
-            background: rgba(15, 23, 42, 0.4);
+            background: rgba(15, 23, 42, 0.45);
             backdrop-filter: blur(4px);
-            z-index: 200;
+            z-index: 2000;
             display: flex;
             align-items: center;
             justify-content: center;
             opacity: 0;
             pointer-events: none;
             transition: opacity 200ms ease;
+            padding: 1rem;
         }
         
         .db-modal-overlay.active {
@@ -691,7 +708,7 @@
             border: 1px solid var(--border-color);
             padding: 1.75rem;
             max-width: 440px;
-            width: calc(100% - 2rem);
+            width: 100%;
             text-align: center;
             transform: scale(0.95);
             transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1);
@@ -755,6 +772,45 @@
         .db-modal-btn-delete:hover {
             background: #dc2626;
             box-shadow: 0 6px 16px rgba(239, 68, 68, 0.25);
+        }
+        .db-modal-btn-delete:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        /* ── TOAST NOTIFICATION ─────────────────────────────────── */
+        .db-toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: #1e293b;
+            color: #fff;
+            padding: 12px 20px;
+            border-radius: 12px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            z-index: 3000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            pointer-events: none;
+        }
+        .db-toast.show {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+        .db-toast.success {
+            background: #065f46;
+            border: 1px solid #059669;
+        }
+        .db-toast.error {
+            background: #991b1b;
+            border: 1px solid #dc2626;
         }
 
         /* ── EMPTY STATE ────────────────────────────────────────── */
@@ -820,44 +876,191 @@
            RESPONSIVE VIEWPORTS
         ============================================================ */
 
-        /* Tablet ≤ 900px */
-        @media (max-width: 900px) {
-            .db-content { padding: 2rem 2rem 3rem; }
+        /* Tablet (769px to 1024px) */
+        @media (max-width: 1024px) and (min-width: 769px) {
+            .db-sidebar { width: 220px; }
+            .db-main { margin-left: 220px; }
+            .db-content { padding: 2rem 1.75rem 3rem; gap: 1.5rem; max-width: 100%; }
+            .db-mtg-row { padding: 1rem 1.25rem; gap: 1rem; }
+            .db-mtg-name { max-width: 220px; }
+            .db-mtg-date { min-width: 125px; font-size: 0.8125rem; }
+            .db-mtg-badges { gap: 0.375rem; }
         }
 
-        /* Mobile ≤ 768px */
+        /* Mobile (≤ 768px down to 320px) */
         @media (max-width: 768px) {
-            .db-sidebar { transform: translateX(-100%); }
+            .db-sidebar {
+                transform: translateX(-100%);
+                width: 260px;
+                max-width: 80vw;
+                z-index: 1000;
+            }
             .db-sidebar.open {
                 transform: translateX(0);
-                box-shadow: 4px 0 30px rgba(15, 23, 42, 0.15);
+                box-shadow: 4px 0 30px rgba(15, 23, 42, 0.2);
             }
-            .db-mob-hdr { display: flex; }
-            .db-main { margin-left: 0; }
-            .db-content { padding: 1.5rem 1.25rem 2.5rem; gap: 1.25rem; }
-            .db-page-hdr { margin-bottom: 0.5rem; }
-            .db-page-title { font-size: 1.5rem; }
-            .db-filter-row { flex-direction: column; align-items: stretch; gap: 0.75rem; }
-            .db-select-wrapper { min-width: 0; width: 100%; }
-            .db-mtg-date { display: none; }
-        }
+            .db-overlay {
+                display: none;
+                position: fixed;
+                inset: 0;
+                background: rgba(15, 23, 42, 0.45);
+                z-index: 999;
+                backdrop-filter: blur(4px);
+            }
+            .db-overlay.open { display: block; }
 
-        /* Small mobile ≤ 480px */
-        @media (max-width: 480px) {
-            .db-content { padding: 1.25rem 1rem 2rem; gap: 1rem; }
-            .db-page-title { font-size: 1.375rem; }
-            .db-mtg-row {
-                flex-direction: column;
-                align-items: flex-start;
-                padding: 1.25rem 1.125rem;
-                gap: 0.875rem;
+            .db-mob-hdr {
+                display: flex;
+                position: sticky;
+                top: 0;
+                width: 100%;
+                height: 56px;
+                background: #fff;
+                border-bottom: 1px solid var(--border-color);
+                z-index: 50;
+                align-items: center;
+                justify-content: space-between;
+                padding: 0 1rem;
+                box-shadow: 0 1px 4px rgba(0,0,0,0.03);
             }
-            .db-mtg-icon { width: 36px; height: 36px; border-radius: 8px; }
+
+            .db-main { margin-left: 0 !important; width: 100%; }
+            .db-content { padding: 1.25rem 1rem 2.5rem; gap: 1.25rem; width: 100%; max-width: 100%; }
+            
+            .db-page-hdr {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 1rem;
+                margin-bottom: 0.25rem;
+                padding-bottom: 0.75rem;
+            }
+            .db-page-title { font-size: 1.5rem; margin-bottom: 0.25rem; }
+            .db-subgreet { font-size: 0.875rem; }
+            
+            .db-hdr-btn {
+                width: 100% !important;
+                justify-content: center;
+                height: 44px;
+                font-size: 0.9rem;
+                border-radius: 12px;
+            }
+
+            .db-filter-row {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 0.75rem;
+                width: 100%;
+            }
+            .db-search-wrapper { width: 100%; flex: none; }
+            .db-search-input { width: 100% !important; height: 44px !important; }
+            .db-select-wrapper { width: 100%; min-width: 0; }
+            .db-select-filter { width: 100%; height: 44px; }
+
+            .db-meetings-card { border-radius: 14px; overflow: hidden; }
+            .db-card-hdr { padding: 1rem 1.125rem; }
+            .db-card-title { font-size: 1rem; }
+
+            /* Mobile Stacked Card Layout for Each Meeting */
+            .db-mtg-row {
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: stretch !important;
+                padding: 1.125rem 1.125rem !important;
+                gap: 0.75rem !important;
+                border-bottom: 1px solid #f1f5f9;
+                background: #fff;
+            }
+
+            .db-mtg-primary {
+                display: flex !important;
+                align-items: flex-start !important;
+                gap: 0.75rem !important;
+                width: 100% !important;
+            }
+
+            .db-mtg-icon {
+                width: 36px;
+                height: 36px;
+                border-radius: 8px;
+                flex-shrink: 0;
+            }
             .db-mtg-icon svg { width: 18px; height: 18px; }
-            .db-role-pill { display: none; }
-            .db-mtg-actions { width: 100%; justify-content: space-between; border-top: 1px solid #f1f5f9; padding-top: 0.75rem; }
-            .db-details-link { padding: 0.4rem 0; }
-            .db-meetings-card { border-radius: 14px; }
+
+            .db-mtg-info {
+                flex: 1;
+                min-width: 0;
+            }
+            .db-mtg-name {
+                font-size: 0.9375rem;
+                font-weight: 600;
+                white-space: normal;
+                word-break: break-word;
+                line-height: 1.35;
+                margin-bottom: 0.25rem;
+            }
+            .db-mtg-code {
+                font-size: 0.75rem;
+                display: inline-block;
+                word-break: break-all;
+            }
+
+            /* Middle row on mobile: Date + Badges side-by-side */
+            .db-mtg-date {
+                display: flex !important;
+                align-items: center;
+                gap: 0.375rem;
+                font-size: 0.8125rem;
+                color: var(--text-muted);
+                min-width: 0;
+            }
+            .db-mtg-date svg { width: 14px; height: 14px; }
+
+            .db-mtg-badges {
+                display: flex !important;
+                flex-wrap: wrap;
+                gap: 0.375rem;
+                align-items: center;
+            }
+            .db-role-badge, .db-role-pill {
+                display: inline-flex !important;
+                font-size: 0.7rem;
+                padding: 0.2rem 0.6rem;
+                min-width: 0;
+            }
+
+            /* Bottom action footer on mobile */
+            .db-mtg-actions {
+                display: flex !important;
+                width: 100% !important;
+                justify-content: space-between !important;
+                align-items: center !important;
+                border-top: 1px solid #f1f5f9 !important;
+                padding-top: 0.625rem !important;
+                margin-top: 0.125rem !important;
+            }
+            .db-details-link {
+                font-size: 0.85rem;
+                font-weight: 600;
+                padding: 0.4rem 0.25rem;
+            }
+            .db-action-dropdown-btn {
+                width: 36px;
+                height: 36px;
+                border-radius: 8px;
+            }
+            .db-action-dropdown-menu {
+                right: 0;
+                top: 100%;
+                margin-top: 0.25rem;
+                min-width: 160px;
+            }
+
+            .db-toast {
+                left: 16px;
+                right: 16px;
+                bottom: 16px;
+                justify-content: center;
+            }
         }
     </style>
 </head>
@@ -1047,22 +1250,25 @@
                     <div id="dbMtgListContainer">
                     {% for m in meetings %}
                         <div class="db-mtg-row" 
+                             id="meeting-row-{{ m.room_code }}"
                              data-title="{{ m.title|lower }}" 
                              data-code="{{ m.room_code|lower }}" 
                              data-role="{% if m.host == request.user %}host{% else %}participant{% endif %}">
                             
                             <!-- Left: Video camera icon inside soft lavender square & Title/Code details -->
-                            <div class="db-mtg-icon">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                                     stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M15 10l4.553-2.069A1 1 0 0 1 21 8.87v6.26a1 1 0 0 1-1.447.899L15 14"/>
-                                    <rect x="2" y="6" width="13" height="12" rx="2"/>
-                                </svg>
-                            </div>
+                            <div class="db-mtg-primary">
+                                <div class="db-mtg-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                         stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M15 10l4.553-2.069A1 1 0 0 1 21 8.87v6.26a1 1 0 0 1-1.447.899L15 14"/>
+                                        <rect x="2" y="6" width="13" height="12" rx="2"/>
+                                    </svg>
+                                </div>
 
-                            <div class="db-mtg-info">
-                                <div class="db-mtg-name">{{ m.title }}</div>
-                                <div class="db-mtg-code">Code: {{ m.room_code }}</div>
+                                <div class="db-mtg-info">
+                                    <div class="db-mtg-name">{{ m.title }}</div>
+                                    <div class="db-mtg-code">Code: {{ m.room_code }}</div>
+                                </div>
                             </div>
 
                             <!-- Middle: Date & Time details -->
@@ -1078,7 +1284,7 @@
                             </div>
 
                             <!-- Right: Status & Role Badges -->
-                            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                            <div class="db-mtg-badges">
                                 {% if m.host == request.user %}
                                     <span class="db-role-badge db-role-badge-host">Host</span>
                                 {% else %}
@@ -1162,21 +1368,40 @@
 
 </div><!-- /db-shell -->
 
+<!-- Toast feedback element -->
+<div id="dbToast" class="db-toast"></div>
+
 <script>
+    // ── Toast Notification Helper ─────────────────────────────
+    function showToast(message, type) {
+        var toast = document.getElementById('dbToast');
+        if (!toast) {
+            toast = document.createElement('div');
+            toast.id = 'dbToast';
+            toast.className = 'db-toast';
+            document.body.appendChild(toast);
+        }
+        toast.className = 'db-toast ' + (type || 'success') + ' show';
+        toast.textContent = message;
+        setTimeout(function () {
+            toast.classList.remove('show');
+        }, 3500);
+    }
+
     // ── Mobile sidebar drawer toggle ────────────────────────────
     var hamburger = document.getElementById('dbHamburger');
     var sidebar   = document.getElementById('dbSidebar');
     var overlay   = document.getElementById('dbOverlay');
 
     function openSidebar() {
-        sidebar.classList.add('open');
-        overlay.classList.add('open');
-        hamburger.setAttribute('aria-expanded', 'true');
+        if (sidebar) sidebar.classList.add('open');
+        if (overlay) overlay.classList.add('open');
+        if (hamburger) hamburger.setAttribute('aria-expanded', 'true');
     }
     function closeSidebar() {
-        sidebar.classList.remove('open');
-        overlay.classList.remove('open');
-        hamburger.setAttribute('aria-expanded', 'false');
+        if (sidebar) sidebar.classList.remove('open');
+        if (overlay) overlay.classList.remove('open');
+        if (hamburger) hamburger.setAttribute('aria-expanded', 'false');
     }
 
     if (hamburger && sidebar && overlay) {
@@ -1211,16 +1436,15 @@
     // ── Client-side search & dropdown filters ──────────────────
     var searchInput = document.getElementById('dbMtgSearch');
     var filterSelect = document.getElementById('dbMtgFilter');
-    var rows = document.querySelectorAll('.db-mtg-row');
     var noResultsEmpty = document.getElementById('dbMtgEmptyState');
-    var cardTitle = document.querySelector('.db-card-title');
 
     function filterMeetings() {
         var query = searchInput ? searchInput.value.toLowerCase().trim() : '';
         var filterVal = filterSelect ? filterSelect.value : 'all';
+        var currentRows = document.querySelectorAll('.db-mtg-row');
         var visibleCount = 0;
 
-        rows.forEach(function (row) {
+        currentRows.forEach(function (row) {
             var title = row.getAttribute('data-title') || '';
             var code = row.getAttribute('data-code') || '';
             var role = row.getAttribute('data-role') || '';
@@ -1229,7 +1453,7 @@
             var matchesFilter = filterVal === 'all' || role === filterVal;
 
             if (matchesQuery && matchesFilter) {
-                row.style.display = 'flex';
+                row.style.display = '';
                 visibleCount++;
             } else {
                 row.style.display = 'none';
@@ -1239,12 +1463,14 @@
         if (noResultsEmpty) {
             if (visibleCount === 0) {
                 noResultsEmpty.style.display = 'flex';
-                // Dynamic description update for search query matches
-                if (rows.length > 0) {
-                    var desc = noResultsEmpty.querySelector('.db-empty-desc');
-                    if (desc) desc.textContent = "No past meetings match your search query or filter selection.";
-                    var btn = noResultsEmpty.querySelector('.db-empty-btn');
+                var desc = noResultsEmpty.querySelector('.db-empty-desc');
+                var btn = noResultsEmpty.querySelector('.db-empty-btn');
+                if (currentRows.length > 0) {
+                    if (desc) desc.textContent = "No meetings match your search query or filter selection.";
                     if (btn) btn.style.display = 'none';
+                } else {
+                    if (desc) desc.textContent = "Your meetings will appear here once you create or join one.";
+                    if (btn) btn.style.display = 'inline-flex';
                 }
             } else {
                 noResultsEmpty.style.display = 'none';
@@ -1255,17 +1481,18 @@
     if (searchInput) searchInput.addEventListener('input', filterMeetings);
     if (filterSelect) filterSelect.addEventListener('change', filterMeetings);
 
-    // ── Delete Confirmation Modal Logic ───────────────────────
+    // ── Delete Confirmation Modal Logic (AJAX + Instant Removal) ─
     var deleteModalOverlay = document.getElementById('deleteModalOverlay');
     var cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
     var deleteMeetingForm = document.getElementById('deleteMeetingForm');
+    var activeDeleteRoomCode = null;
 
     document.addEventListener('click', function (e) {
         var trigger = e.target.closest('.trigger-delete-modal');
         if (trigger) {
             var roomCode = trigger.getAttribute('data-room');
             if (roomCode && deleteMeetingForm) {
-                // Dynamic target URL formation
+                activeDeleteRoomCode = roomCode;
                 var urlTemplate = "{% url 'delete_meeting' 'ROOM_CODE_PLACEHOLDER' %}";
                 deleteMeetingForm.action = urlTemplate.replace('ROOM_CODE_PLACEHOLDER', roomCode);
                 if (deleteModalOverlay) {
@@ -1280,6 +1507,12 @@
         if (deleteModalOverlay) {
             deleteModalOverlay.classList.remove('active');
         }
+        activeDeleteRoomCode = null;
+        var submitBtn = deleteMeetingForm ? deleteMeetingForm.querySelector('button[type="submit"]') : null;
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Delete Meeting';
+        }
     }
 
     if (cancelDeleteBtn) {
@@ -1291,6 +1524,74 @@
             if (e.target === deleteModalOverlay) {
                 closeDeleteModal();
             }
+        });
+    }
+
+    if (deleteMeetingForm) {
+        deleteMeetingForm.addEventListener('submit', function (e) {
+            e.preventDefault();
+            var submitBtn = deleteMeetingForm.querySelector('button[type="submit"]');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Deleting...';
+            }
+
+            var csrfToken = document.querySelector('[name=csrfmiddlewaretoken]') ? 
+                            document.querySelector('[name=csrfmiddlewaretoken]').value : '';
+
+            fetch(deleteMeetingForm.action, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(function (res) {
+                if (res.ok) {
+                    return res.json().catch(function () { return { success: true }; });
+                }
+                return res.json().then(function (errData) {
+                    throw new Error(errData.error || 'Failed to delete meeting.');
+                });
+            })
+            .then(function (data) {
+                var roomCodeToDelete = activeDeleteRoomCode;
+                closeDeleteModal();
+                
+                if (roomCodeToDelete) {
+                    var targetRow = document.querySelector('.db-mtg-row[data-code="' + roomCodeToDelete.toLowerCase() + '"]');
+                    if (targetRow) {
+                        targetRow.style.opacity = '0';
+                        targetRow.style.transform = 'translateY(-8px) scale(0.98)';
+                        targetRow.style.maxHeight = targetRow.offsetHeight + 'px';
+                        setTimeout(function () {
+                            targetRow.style.maxHeight = '0';
+                            targetRow.style.paddingTop = '0';
+                            targetRow.style.paddingBottom = '0';
+                            targetRow.style.marginTop = '0';
+                            targetRow.style.marginBottom = '0';
+                            targetRow.style.border = 'none';
+                            targetRow.style.overflow = 'hidden';
+                            setTimeout(function () {
+                                targetRow.remove();
+                                filterMeetings();
+                                showToast('Meeting deleted successfully.', 'success');
+                            }, 250);
+                        }, 50);
+                    } else {
+                        filterMeetings();
+                        showToast('Meeting deleted successfully.', 'success');
+                    }
+                }
+            })
+            .catch(function (err) {
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Delete Meeting';
+                }
+                showToast(err.message || 'Error deleting meeting. Please try again.', 'error');
+            });
         });
     }
 </script>

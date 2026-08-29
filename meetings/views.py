@@ -169,10 +169,18 @@ def meeting_details(request, room_code):
 @login_required
 def delete_meeting(request, room_code):
     meeting = get_object_or_404(Meeting, room_code=room_code)
+    is_ajax = request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.content_type == 'application/json'
     if meeting.host != request.user:
+        if is_ajax:
+            return JsonResponse({'success': False, 'error': 'You do not have permission to delete this meeting.'}, status=403)
         return HttpResponseForbidden("You do not have permission to delete this meeting.")
     if request.method == 'POST':
         meeting.delete()
+        if is_ajax:
+            return JsonResponse({'success': True, 'room_code': room_code, 'message': 'Meeting deleted successfully.'})
+        return redirect('meeting_history')
+    if is_ajax:
+        return JsonResponse({'success': False, 'error': 'Invalid request method.'}, status=405)
     return redirect('meeting_history')
 
 

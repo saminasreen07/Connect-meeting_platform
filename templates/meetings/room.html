@@ -54,10 +54,14 @@
 
   /* Main Stage Layout */
   .main-stage-container { display: flex; flex: 1; margin-top: 64px; margin-bottom: 78px; height: calc(100vh - 142px); position: relative; overflow: hidden; }
-  .video-grid { flex: 1; display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; padding: 24px; overflow-y: auto; align-content: center; justify-content: center; }
+  .video-grid { flex: 1; display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; padding: 24px; overflow-y: auto; align-content: center; justify-content: center; justify-items: center; align-items: center; }
 
   /* Participant grid layout custom overrides for Desktop */
   @media (min-width: 769px) {
+    /* Paginated mode: always 2 columns to prevent cards resizing on partial pages */
+    .video-grid.paginated-mode {
+      grid-template-columns: 1fr 1fr !important;
+    }
     /* Single participant: Centered, larger stage */
     .video-grid:not(.spotlight-mode):has(> :first-child:last-child) {
       grid-template-columns: 1fr;
@@ -68,10 +72,25 @@
     .video-grid:not(.spotlight-mode):has(> :nth-child(2):last-child) {
       grid-template-columns: 1fr 1fr;
     }
-    /* Three or four participants: balanced 2-column grid */
-    .video-grid:not(.spotlight-mode):has(> :nth-child(3):last-child),
+    /* Three participants: balanced 2-column grid, third wraps naturally */
+    .video-grid:not(.spotlight-mode):has(> :nth-child(3):last-child) {
+      grid-template-columns: 1fr 1fr;
+    }
+    /* Four participants: 2 × 2 grid */
     .video-grid:not(.spotlight-mode):has(> :nth-child(4):last-child) {
       grid-template-columns: 1fr 1fr;
+    }
+    /* Five or six participants: 3 columns */
+    .video-grid:not(.spotlight-mode):has(> :nth-child(5):last-child),
+    .video-grid:not(.spotlight-mode):has(> :nth-child(6):last-child) {
+      grid-template-columns: repeat(3, 1fr);
+    }
+    /* Seven to ten participants: 4 columns */
+    .video-grid:not(.spotlight-mode):has(> :nth-child(7):last-child),
+    .video-grid:not(.spotlight-mode):has(> :nth-child(8):last-child),
+    .video-grid:not(.spotlight-mode):has(> :nth-child(9):last-child),
+    .video-grid:not(.spotlight-mode):has(> :nth-child(10):last-child) {
+      grid-template-columns: repeat(4, 1fr);
     }
   }
 
@@ -97,7 +116,7 @@
   .thumbnail-strip { display: flex; flex-direction: column; gap: 12px; overflow-y: auto; padding-right: 4px; }
 
   /* Video wrapper & items */
-  .video-wrapper { position: relative; background-color: var(--bg-dark); border: 1px solid var(--border-glass); border-radius: 12px; overflow: hidden; aspect-ratio: 16/9; box-shadow: 0 4px 20px rgba(0,0,0,0.3); transition: transform var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast); }
+  .video-wrapper { position: relative; background-color: var(--bg-dark); border: 1px solid var(--border-glass); border-radius: 12px; overflow: hidden; aspect-ratio: 16/9; width: 100%; max-width: 100%; max-height: 100%; box-shadow: 0 4px 20px rgba(0,0,0,0.3); transition: transform var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast); }
   .video-wrapper:hover { border-color: rgba(255, 255, 255, 0.15); box-shadow: 0 10px 25px rgba(0,0,0,0.4); }
   .video-wrapper.active-speaker { border-color: var(--primary); box-shadow: 0 0 12px rgba(99, 102, 241, 0.4); }
   .video-wrapper.pinned-speaker { border-color: rgba(99, 102, 241, 0.5) !important; box-shadow: 0 0 12px rgba(99, 102, 241, 0.3); }
@@ -111,11 +130,80 @@
   .video-avatar { position: absolute; inset: 0; background: radial-gradient(circle, #1e293b 0%, #0f172a 100%); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; z-index: 2; }
   .avatar-circle { width: 72px; height: 72px; border-radius: 50%; background: linear-gradient(135deg, var(--primary) 0%, #4338ca 100%); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: 700; box-shadow: 0 8px 24px rgba(99, 102, 241, 0.3); }
   .avatar-text { color: #94a3b8; font-size: 12px; font-weight: 500; }
-
   /* Subtle Pin Button */
   .pin-btn { position: absolute; top: 12px; right: 12px; background: rgba(15, 23, 42, 0.65); border: 1px solid rgba(255, 255, 255, 0.1); color: #fff; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 5; transition: all var(--transition-fast); opacity: 0; }
   .video-wrapper:hover .pin-btn { opacity: 1; }
   .pin-btn:hover { background: var(--primary); border-color: var(--primary-hover); transform: scale(1.1); }
+  .pin-btn.active { opacity: 1 !important; background: var(--primary) !important; border-color: var(--primary-hover) !important; }
+
+  /* Fullscreen Button */
+  .fs-btn { position: absolute; top: 12px; right: 48px; background: rgba(15, 23, 42, 0.65); border: 1px solid rgba(255, 255, 255, 0.1); color: #fff; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 5; transition: all var(--transition-fast); opacity: 0; }
+  .video-wrapper:hover .fs-btn { opacity: 1; }
+  .fs-btn:hover { background: var(--primary); border-color: var(--primary-hover); transform: scale(1.1); }
+
+  /* Fullscreen Element Styling Overrides */
+  .video-wrapper:fullscreen {
+    background-color: #000 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+  .video-wrapper:fullscreen video {
+    width: auto !important;
+    height: 100% !important;
+    max-width: 100vw !important;
+    max-height: 100vh !important;
+    object-fit: contain !important;
+  }
+  .video-wrapper:-webkit-full-screen { background-color: #000 !important; width: 100vw !important; height: 100vh !important; display: flex !important; align-items: center !important; justify-content: center !important; }
+  .video-wrapper:-webkit-full-screen video { width: auto !important; height: 100% !important; max-width: 100vw !important; max-height: 100vh !important; object-fit: contain !important; }
+
+  /* Premium Pagination Controls Bar */
+  .pagination-controls-bar {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(15, 23, 42, 0.75);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 6px 16px;
+    border-radius: 30px;
+    z-index: 95;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  }
+  .pagination-arrow-btn {
+    background: none;
+    border: none;
+    color: #e2e8f0;
+    font-size: 20px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 6px;
+    transition: color var(--transition-fast);
+    line-height: 1;
+  }
+  .pagination-arrow-btn:hover {
+    color: #fff;
+  }
+  .pagination-arrow-btn:disabled {
+    color: rgba(255, 255, 255, 0.25);
+    cursor: not-allowed;
+  }
+  .pagination-indicator {
+    color: #94a3b8;
+    font-size: 13px;
+    font-weight: 600;
+    user-select: none;
+  }
 
   /* Floating Bottom Controls Dock */
   .controls { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); background-color: var(--bg-glass); backdrop-filter: blur(16px); border: 1px solid var(--border-glass); padding: 10px 24px; border-radius: 30px; display: flex; align-items: center; gap: 8px; z-index: 110; box-shadow: var(--shadow-premium); }
@@ -197,15 +285,252 @@
 
   /* Mobile/Tablet overrides */
   @media (max-width: 768px) {
-    .main-stage-container { flex-direction: column; margin-bottom: 72px; height: calc(100vh - 136px); }
-    .video-grid.spotlight-mode { grid-template-columns: 1fr; grid-template-rows: 2.2fr 1fr; }
-    .thumbnail-strip { flex-direction: row; height: 105px; overflow-x: auto; overflow-y: hidden; padding-bottom: 4px; }
-    .thumbnail-strip .video-wrapper { height: 100%; aspect-ratio: 16/9; min-width: 130px; }
-    .side-panel { position: fixed; top: 64px; right: 0; bottom: 72px; width: 100%; z-index: 130; }
-    .controls { padding: 8px 16px; border-radius: 20px; gap: 6px; bottom: 12px; }
-    .ctrl-btn { width: 36px; height: 36px; font-size: 14px; }
-    #transcript-btn { padding: 0 10px; }
-    .end-btn { padding: 8px 14px; font-size: 11px; border-radius: 16px; }
+    .room-layout {
+      height: 100vh !important;
+      height: 100dvh !important;
+      display: flex !important;
+      flex-direction: column !important;
+      overflow: hidden !important;
+      position: relative !important;
+    }
+    .room-header {
+      position: relative !important;
+      top: auto !important;
+      left: auto !important;
+      right: auto !important;
+      height: 52px !important;
+      padding: 0 12px !important;
+      flex-shrink: 0 !important;
+    }
+    .meeting-title-row {
+      max-width: 170px;
+    }
+    .room-title {
+      font-size: 13px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .room-code-row {
+      font-size: 11px;
+    }
+    .header-right {
+      gap: 6px;
+    }
+    .header-badge {
+      padding: 4px 8px;
+      font-size: 11px;
+    }
+    #caption-lang-container {
+      display: none !important;
+    }
+    .main-stage-container {
+      flex: 1 1 0 !important;
+      min-height: 0 !important;
+      height: auto !important;
+      max-height: none !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      display: flex !important;
+      flex-direction: column !important;
+      overflow: hidden !important;
+      position: relative !important;
+    }
+    .video-grid-wrapper {
+      flex: 1 1 0 !important;
+      min-height: 0 !important;
+      width: 100% !important;
+      height: 100% !important;
+      display: flex !important;
+      flex-direction: column !important;
+      justify-content: center !important;
+      align-items: center !important;
+      overflow: hidden !important;
+      position: relative !important;
+    }
+    .video-grid {
+      display: flex !important;
+      flex-direction: column !important;
+      justify-content: center !important;
+      align-items: center !important;
+      gap: 8px !important;
+      padding: 2px 8px 4px !important;
+      width: 100% !important;
+      height: 100% !important;
+      min-height: 0 !important;
+      overflow: hidden !important;
+    }
+    /* Case 1: 1 participant */
+    .video-grid.mobile-grid-mode > .video-wrapper:only-child {
+      width: 100% !important;
+      max-width: 480px !important;
+      max-height: 85% !important;
+      aspect-ratio: 16/9 !important;
+      margin: auto !important;
+      flex: 0 1 auto !important;
+      min-height: 0 !important;
+    }
+    /* Case 2 & 3: 2 participants stacked vertically */
+    .video-grid.mobile-grid-mode > .video-wrapper {
+      width: 100% !important;
+      max-width: 480px !important;
+      max-height: calc(50% - 4px) !important;
+      min-height: 0 !important;
+      aspect-ratio: 16/9 !important;
+      flex: 1 1 0 !important;
+      margin: 0 auto !important;
+    }
+    /* Mobile video label padding & compact placement */
+    .video-grid.mobile-grid-mode .video-label {
+      bottom: 8px;
+      left: 8px;
+      font-size: 10px;
+      padding: 3px 8px;
+    }
+    /* Mobile Screen Sharing Page 1 */
+    .video-grid.mobile-screen-share-p1 {
+      display: flex !important;
+      flex-direction: column !important;
+      justify-content: space-between !important;
+      align-items: center !important;
+      gap: 8px !important;
+      height: 100% !important;
+    }
+    .video-grid.mobile-screen-share-p1 > .video-wrapper {
+      flex: 1 1 0 !important;
+      width: 100% !important;
+      max-height: calc(100% - 85px) !important;
+      min-height: 0 !important;
+      aspect-ratio: 16/9 !important;
+    }
+    .mobile-sub-row {
+      display: flex !important;
+      flex-direction: row !important;
+      gap: 8px !important;
+      width: 100% !important;
+      max-width: 480px !important;
+      height: 75px !important;
+      flex-shrink: 0 !important;
+      justify-content: center !important;
+    }
+    .mobile-sub-row .video-wrapper {
+      flex: 1 1 0 !important;
+      height: 100% !important;
+      max-height: 75px !important;
+      aspect-ratio: 16/9 !important;
+      min-width: 0 !important;
+      max-width: calc(50% - 4px) !important;
+    }
+    .mobile-sub-row .video-label {
+      bottom: 4px;
+      left: 4px;
+      font-size: 9px;
+      padding: 2px 6px;
+    }
+    /* Captions overlay on mobile - dedicated non-overlapping safe space (~52px) */
+    #captions-overlay {
+      position: relative !important;
+      bottom: auto !important;
+      left: auto !important;
+      transform: none !important;
+      width: calc(100% - 24px) !important;
+      max-width: 440px !important;
+      margin: 0 auto !important;
+      min-height: 52px !important;
+      max-height: 60px !important;
+      flex-shrink: 0 !important;
+      display: flex !important;
+      flex-direction: column !important;
+      justify-content: center !important;
+      align-items: center !important;
+      padding: 4px 8px 6px !important;
+      z-index: 105 !important;
+      pointer-events: none;
+    }
+    /* Side panels (Chat, Participants) on mobile */
+    .side-panel {
+      position: fixed;
+      top: 52px;
+      right: 0;
+      bottom: calc(60px + env(safe-area-inset-bottom, 0px));
+      width: 100%;
+      z-index: 130;
+    }
+    /* Bottom Controls Dock on Mobile - In-flow flex item below main stage */
+    .controls {
+      position: relative !important;
+      bottom: auto !important;
+      left: auto !important;
+      transform: none !important;
+      width: calc(100% - 16px) !important;
+      max-width: 380px !important;
+      margin: 4px auto calc(6px + env(safe-area-inset-bottom, 0px)) !important;
+      flex-shrink: 0 !important;
+      padding: 6px 10px !important;
+      border-radius: 26px !important;
+      display: flex !important;
+      justify-content: space-between !important;
+      align-items: center !important;
+      gap: 3px !important;
+      background: rgba(18, 24, 38, 0.94) !important;
+      backdrop-filter: blur(20px) !important;
+      -webkit-backdrop-filter: blur(20px) !important;
+      border: 1px solid var(--border-glass) !important;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6) !important;
+      z-index: 110 !important;
+    }
+    .ctrl-btn {
+      width: 38px;
+      height: 38px;
+      min-width: 32px;
+      border-radius: 50%;
+      font-size: 15px;
+      flex-shrink: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #transcript-btn {
+      width: 38px;
+      height: 38px;
+      min-width: 32px;
+      border-radius: 50%;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 0;
+      flex-shrink: 1;
+    }
+    .end-btn {
+      padding: 8px 12px;
+      font-size: 11px;
+      font-weight: 600;
+      border-radius: 18px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    /* Hide desktop secondary controls from mobile main dock */
+    #chat-btn,
+    #participants-btn,
+    #raise-hand-btn,
+    #reactions-btn,
+    .ctrl-divider,
+    #shortcut-hint {
+      display: none !important;
+    }
+    /* Show mobile secondary items in More menu */
+    .mobile-more-item {
+      display: flex !important;
+    }
+    .more-menu-popover {
+      width: 200px;
+      border-radius: 16px;
+      padding: 6px 0;
+    }
+    .more-menu-item {
+      padding: 9px 16px;
+      font-size: 13px;
+      gap: 10px;
+    }
   }
 </style>
 
@@ -259,21 +584,31 @@
 
   <!-- Main Stage & Panels Container -->
   <div class="main-stage-container">
-    <!-- Video grid stage -->
-    <div class="video-grid" id="video-grid">
-      <div class="video-wrapper" id="local-wrapper">
-        <video id="local-video" autoplay muted playsinline></video>
-        <div id="local-avatar" class="video-avatar">
-          <div class="avatar-circle">
-            {{ user.username|slice:":1"|upper }}
+    <!-- Video grid stage wrapper to contain relative pagination controls -->
+    <div class="video-grid-wrapper" style="position: relative; flex: 1; display: flex; min-width: 0; min-height: 0; height: 100%;">
+      <!-- Video grid stage -->
+      <div class="video-grid" id="video-grid">
+        <div class="video-wrapper" id="local-wrapper">
+          <video id="local-video" autoplay muted playsinline></video>
+          <div id="local-avatar" class="video-avatar">
+            <div class="avatar-circle">
+              {{ user.username|slice:":1"|upper }}
+            </div>
+            <span class="avatar-text">Camera Off</span>
           </div>
-          <span class="avatar-text">Camera Off</span>
+          <div class="video-label" id="label-local">
+            You · {{ user.username }}
+            {% if is_host %}<span class="host-badge">Host</span>{% endif %}
+          </div>
+          <button class="pin-btn" onclick="togglePin('local')" title="Pin video">📌</button>
+          <button class="fs-btn" onclick="toggleFullscreen(document.getElementById('local-wrapper'))" title="Toggle fullscreen">⛶</button>
         </div>
-        <div class="video-label" id="label-local">
-          You · {{ user.username }}
-          {% if is_host %}<span class="host-badge">Host</span>{% endif %}
-        </div>
-        <button class="pin-btn" onclick="togglePin('local')" title="Pin video">📌</button>
+      </div>
+      <!-- Pagination Controls Centered Bar -->
+      <div id="grid-pagination-controls" class="pagination-controls-bar" style="display: none;">
+        <button id="prev-page-btn" class="pagination-arrow-btn prev" onclick="navigatePage(-1)">‹</button>
+        <span id="pagination-page-indicator" class="pagination-indicator">1 / 1</span>
+        <button id="next-page-btn" class="pagination-arrow-btn next" onclick="navigatePage(1)">›</button>
       </div>
     </div>
 
@@ -355,7 +690,7 @@
     <button class="ctrl-btn" id="transcript-btn" title="Live Captions">CC</button>
     <button class="ctrl-btn" id="more-btn" title="More Options">⋮</button>
     
-    <div style="width: 1px; height: 24px; background-color: rgba(255,255,255,0.15); margin: 0 4px;"></div>
+    <div class="ctrl-divider" style="width: 1px; height: 24px; background-color: rgba(255,255,255,0.15); margin: 0 4px;"></div>
     
     {% if is_host %}
     <a href="{% url 'end_meeting' room_code %}" class="end-btn" id="leave-btn">End Meeting</a>
@@ -366,9 +701,52 @@
 </div>
 
 <!-- Context Popover for More menu -->
-<div id="more-menu-popover" class="more-menu-popover" style="display:none; position:fixed; bottom:84px; z-index:150; background:rgba(18,24,38,0.95); backdrop-filter:blur(16px); border:1px solid var(--border-glass); border-radius:12px; padding:8px 0; width:180px; box-shadow: var(--shadow-premium);">
+<div id="more-menu-popover" class="more-menu-popover" style="display:none; position:fixed; bottom:84px; z-index:150; background:rgba(18,24,38,0.95); backdrop-filter:blur(16px); border:1px solid var(--border-glass); border-radius:12px; padding:8px 0; width:190px; box-shadow: var(--shadow-premium);">
+  <div class="more-menu-item mobile-more-item" id="more-chat-btn" style="display:none;"><span style="margin-right:8px;">💬</span> Chat</div>
+  <div class="more-menu-item mobile-more-item" id="more-participants-btn" style="display:none;"><span style="margin-right:8px;">👥</span> Participants</div>
+  <div class="more-menu-item mobile-more-item" id="more-raise-hand-btn" style="display:none;"><span style="margin-right:8px;">✋</span> Raise Hand</div>
+  <div class="more-menu-item mobile-more-item" id="more-reactions-btn" style="display:none;"><span style="margin-right:8px;">😀</span> Reactions</div>
+  <div class="more-menu-item mobile-more-item" id="more-translation-btn" style="display:none;"><span style="margin-right:8px;">🌐</span> Translation</div>
+  <div class="mobile-more-item" style="display:none; height: 1px; background: var(--border-glass); margin: 4px 0;"></div>
   <div class="more-menu-item" id="more-settings-btn"><span style="margin-right:8px;">⚙️</span> Settings</div>
   <div class="more-menu-item" id="more-details-btn"><span style="margin-right:8px;">ℹ️</span> Meeting details</div>
+</div>
+
+<!-- Translation Language Modal for Mobile -->
+<div id="translation-modal" class="modal-overlay" style="display: none;">
+  <div class="modal-container">
+    <div class="modal-header">
+      <h3 style="margin:0; color:#fff; font-size:14px; font-weight: 600;">Caption Translation</h3>
+      <span class="modal-close" onclick="closeModal('translation-modal')">×</span>
+    </div>
+    <div class="modal-body" style="padding:16px 20px; display:flex; flex-direction:column; gap:12px;">
+      <p style="font-size:12px; color:#94a3b8; margin:0;">Select language to translate live captions into:</p>
+      <select id="mobile-translation-select" class="translation-select" style="width:100%; padding:10px 14px 10px 36px; font-size:13px; border-radius:10px;">
+        <option value="original">Original (As Spoken)</option>
+        <option value="en" selected>English</option>
+        <option value="ta">Tamil</option>
+        <option value="hi">Hindi</option>
+        <option value="ml">Malayalam</option>
+        <option value="te">Telugu</option>
+        <option value="kn">Kannada</option>
+        <option value="mr">Marathi</option>
+        <option value="bn">Bengali</option>
+        <option value="gu">Gujarati</option>
+        <option value="pa">Punjabi</option>
+        <option value="ur">Urdu</option>
+        <option value="es">Spanish</option>
+        <option value="fr">French</option>
+        <option value="de">German</option>
+        <option value="zh">Chinese</option>
+        <option value="ar">Arabic</option>
+        <option value="ru">Russian</option>
+        <option value="ja">Japanese</option>
+        <option value="ko">Korean</option>
+        <option value="pt">Portuguese</option>
+        <option value="it">Italian</option>
+      </select>
+    </div>
+  </div>
 </div>
 
 <!-- Details Modal -->
@@ -438,6 +816,7 @@
   let isScreenSharing    = false;
   let localScreenStream  = null;
   let pinnedId           = null;
+  let currentPage        = 0;
   let screenSharingId    = null;
   let mediaRecorder      = null;
   let mediaRecorderTimer = null;
@@ -487,10 +866,6 @@
   const chatInput        = document.getElementById('chat-input');
 
   const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
-  if (isMobile) {
-    document.getElementById('screen-btn').disabled = true;
-    document.getElementById('screen-btn').title = 'Screen sharing not supported on mobile';
-  }
 
   // ============================================================
   // UTILITY HELPERS
@@ -669,6 +1044,10 @@
       video.playsinline = true;
       video.setAttribute('playsinline', '');
       video.setAttribute('webkit-playsinline', '');
+      video.onplaying = () => {
+        const av = document.getElementById(`avatar-user-${userId}`);
+        if (av) av.style.display = 'none';
+      };
 
       // Avatar overlay for camera-off state
       const initial = (username && username.length > 0) ? username.charAt(0).toUpperCase() : '?';
@@ -693,10 +1072,17 @@
       pinBtn.title = 'Pin video';
       pinBtn.onclick = () => togglePin(`user-${userId}`);
 
+      const fsBtn = document.createElement('button');
+      fsBtn.innerHTML = '⛶';
+      fsBtn.className = 'fs-btn';
+      fsBtn.title = 'Toggle fullscreen';
+      fsBtn.onclick = () => toggleFullscreen(wrapper);
+
       wrapper.appendChild(video);
       wrapper.appendChild(avatar);
       wrapper.appendChild(label);
       wrapper.appendChild(pinBtn);
+      wrapper.appendChild(fsBtn);
       videoGrid.appendChild(wrapper);
     } else {
       const label = document.getElementById(`label-user-${userId}`);
@@ -747,8 +1133,60 @@
     if (pinnedId === targetId) { pinnedId = null; rebuildGridLayout(); }
   }
 
+  function navigatePage(direction) {
+    const isMobileView = window.innerWidth <= 768;
+    const isScreenShareActive = isScreenSharing || (screenSharingId !== null);
+    const wrappersCount = participantsMap.size + 1;
+    
+    let totalPages = 1;
+    if (isMobileView) {
+      if (isScreenShareActive) {
+        const normalCount = Math.max(0, wrappersCount - 1);
+        totalPages = 1 + Math.ceil(Math.max(0, normalCount - 2) / 2);
+      } else {
+        totalPages = Math.max(1, Math.ceil(wrappersCount / 2));
+      }
+    } else {
+      if (isScreenShareActive) {
+        const normalCount = Math.max(0, wrappersCount - 1);
+        totalPages = 1 + Math.ceil(Math.max(0, normalCount - 3) / 4);
+      } else {
+        totalPages = Math.max(1, Math.ceil(wrappersCount / 4));
+      }
+    }
+
+    const newPage = currentPage + direction;
+    if (newPage >= 0 && newPage < totalPages) {
+      currentPage = newPage;
+      rebuildGridLayout();
+    }
+  }
+
+  function toggleFullscreen(element) {
+    if (!document.fullscreenElement) {
+      if (element.requestFullscreen) {
+        element.requestFullscreen();
+      } else if (element.webkitRequestFullscreen) {
+        element.webkitRequestFullscreen();
+      } else if (element.msRequestFullscreen) {
+        element.msRequestFullscreen();
+      }
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      } else if (document.webkitExitFullscreen) {
+        document.webkitExitFullscreen();
+      } else if (document.msExitFullscreen) {
+        document.msExitFullscreen();
+      }
+    }
+  }
+
   function rebuildGridLayout() {
+    const isMobileView = window.innerWidth <= 768;
     const grid = document.getElementById('video-grid');
+    if (!grid) return;
+    
     const wrappers = [];
     const local = document.getElementById('local-wrapper');
     if (local) wrappers.push(local);
@@ -758,31 +1196,309 @@
         if (w) wrappers.push(w);
       }
     });
+
     const mainCont  = document.getElementById('spotlight-main');
     const stripCont = document.getElementById('thumbnail-strip');
-    if (mainCont)  mainCont.remove();
+    const mobileRowCont = document.getElementById('mobile-sub-row');
+    if (mainCont) mainCont.remove();
     if (stripCont) stripCont.remove();
+    if (mobileRowCont) mobileRowCont.remove();
+
     grid.classList.remove('spotlight-mode');
-    if (pinnedId) {
-      grid.classList.add('spotlight-mode');
-      const main  = document.createElement('div');
-      main.id = 'spotlight-main'; main.className = 'spotlight-main';
-      const strip = document.createElement('div');
-      strip.id = 'thumbnail-strip'; strip.className = 'thumbnail-strip';
-      grid.appendChild(main); grid.appendChild(strip);
-      wrappers.forEach(w => {
-        const isPinned = (w.id === 'local-wrapper' && pinnedId === 'local') ||
-                         (w.id === `wrapper-${pinnedId}`);
-        w.style.border = '';
-        w.classList.toggle('pinned-speaker', isPinned);
-        (isPinned ? main : strip).appendChild(w);
-      });
+    grid.classList.remove('paginated-mode');
+    grid.classList.remove('mobile-grid-mode');
+    grid.classList.remove('mobile-screen-share-p1');
+
+    const prevBtn = document.getElementById('prev-page-btn');
+    const nextBtn = document.getElementById('next-page-btn');
+    const indicator = document.getElementById('pagination-page-indicator');
+    const controlsContainer = document.getElementById('grid-pagination-controls');
+
+    // Update active class on pin buttons for all wrappers
+    wrappers.forEach(w => {
+      const pinBtn = w.querySelector('.pin-btn');
+      const isPinned = (w.id === 'local-wrapper' && pinnedId === 'local') ||
+                       (pinnedId && w.id === `wrapper-${pinnedId}`);
+      if (pinBtn) {
+        pinBtn.classList.toggle('active', isPinned);
+      }
+      w.classList.toggle('pinned-speaker', isPinned);
+    });
+
+    const isScreenShareActive = isScreenSharing || (screenSharingId !== null);
+
+    if (isMobileView) {
+      // ============================================================
+      // MOBILE LAYOUT ENGINE
+      // ============================================================
+      grid.classList.add('mobile-grid-mode');
+
+      // On mobile, pinning = REORDER ONLY (move pinned participant to position 1)
+      let orderedWrappers = [...wrappers];
+      if (pinnedId) {
+        const pinnedIndex = orderedWrappers.findIndex(w =>
+          (w.id === 'local-wrapper' && pinnedId === 'local') ||
+          (pinnedId && w.id === `wrapper-${pinnedId}`)
+        );
+        if (pinnedIndex > 0) {
+          const [pinnedWrapper] = orderedWrappers.splice(pinnedIndex, 1);
+          orderedWrappers.unshift(pinnedWrapper);
+        }
+      }
+
+      if (isScreenShareActive) {
+        // --- Mobile Screen Sharing Mode ---
+        let screenSharerWrapper = null;
+        if (isScreenSharing) {
+          screenSharerWrapper = local;
+        } else if (screenSharingId) {
+          const uId = screenSharingId.replace('user-', '');
+          screenSharerWrapper = document.getElementById(`wrapper-user-${uId}`);
+        }
+
+        const normalWrappers = orderedWrappers.filter(w => w !== screenSharerWrapper);
+        // Page 1: Screen + up to 2 side-by-side.
+        // Page 2+: remaining participants (max 2 stacked per page).
+        const remainingCount = Math.max(0, normalWrappers.length - 2);
+        const totalPages = 1 + Math.ceil(remainingCount / 2);
+
+        if (currentPage >= totalPages) currentPage = totalPages - 1;
+        if (currentPage < 0) currentPage = 0;
+
+        if (currentPage === 0) {
+          // Page 1: Shared screen (top, large) + up to 2 participants side-by-side underneath
+          grid.classList.add('mobile-screen-share-p1');
+          
+          if (screenSharerWrapper) {
+            screenSharerWrapper.style.display = '';
+            grid.appendChild(screenSharerWrapper);
+          }
+
+          const pageThumbnails = normalWrappers.slice(0, 2);
+          if (pageThumbnails.length > 0) {
+            const subRow = document.createElement('div');
+            subRow.id = 'mobile-sub-row';
+            subRow.className = 'mobile-sub-row';
+            grid.appendChild(subRow);
+            pageThumbnails.forEach(w => {
+              w.style.display = '';
+              subRow.appendChild(w);
+            });
+          }
+
+          // Hide any remaining normal wrappers
+          normalWrappers.slice(2).forEach(w => {
+            w.style.display = 'none';
+          });
+        } else {
+          // Page 2+: Normal participants only (max 2 stacked per page)
+          if (screenSharerWrapper) {
+            screenSharerWrapper.style.display = 'none';
+          }
+          const startIndex = 2 + (currentPage - 1) * 2;
+          const visibleWrappers = normalWrappers.slice(startIndex, startIndex + 2);
+
+          normalWrappers.forEach(w => {
+            if (visibleWrappers.includes(w)) {
+              w.style.display = '';
+              grid.appendChild(w);
+            } else {
+              w.style.display = 'none';
+            }
+          });
+        }
+
+        // Pagination controls for mobile screen share
+        if (totalPages > 1) {
+          if (controlsContainer) controlsContainer.style.display = 'flex';
+          if (prevBtn) prevBtn.disabled = (currentPage === 0);
+          if (nextBtn) nextBtn.disabled = (currentPage === totalPages - 1);
+          if (indicator) indicator.innerText = `${currentPage + 1} / ${totalPages}`;
+        } else {
+          if (controlsContainer) controlsContainer.style.display = 'none';
+        }
+
+      } else {
+        // --- Mobile Normal Mode (No screen share) ---
+        // Max 2 participants per page
+        const totalPages = Math.max(1, Math.ceil(orderedWrappers.length / 2));
+        if (currentPage >= totalPages) currentPage = totalPages - 1;
+        if (currentPage < 0) currentPage = 0;
+
+        const startIndex = currentPage * 2;
+        const visibleWrappers = orderedWrappers.slice(startIndex, startIndex + 2);
+
+        orderedWrappers.forEach(w => {
+          if (visibleWrappers.includes(w)) {
+            w.style.display = '';
+            grid.appendChild(w);
+          } else {
+            w.style.display = 'none';
+          }
+        });
+
+        // Pagination controls for normal mobile
+        if (totalPages > 1) {
+          if (controlsContainer) controlsContainer.style.display = 'flex';
+          if (prevBtn) prevBtn.disabled = (currentPage === 0);
+          if (nextBtn) nextBtn.disabled = (currentPage === totalPages - 1);
+          if (indicator) indicator.innerText = `${currentPage + 1} / ${totalPages}`;
+        } else {
+          if (controlsContainer) controlsContainer.style.display = 'none';
+        }
+      }
+
     } else {
-      wrappers.forEach(w => {
-        w.style.border = '';
-        w.classList.remove('pinned-speaker');
-        grid.appendChild(w);
-      });
+      // ============================================================
+      // DESKTOP LAYOUT ENGINE (Preserved Exactly)
+      // ============================================================
+      if (isScreenShareActive) {
+        // Screen Share Pagination Mode on Desktop
+        let screenSharerWrapper = null;
+        if (isScreenSharing) {
+          screenSharerWrapper = local;
+        } else if (screenSharingId) {
+          const uId = screenSharingId.replace('user-', '');
+          screenSharerWrapper = document.getElementById(`wrapper-user-${uId}`);
+        }
+
+        const normalWrappers = wrappers.filter(w => w !== screenSharerWrapper);
+        const totalPages = 1 + Math.ceil(Math.max(0, normalWrappers.length - 3) / 4);
+
+        if (currentPage >= totalPages) {
+          currentPage = totalPages - 1;
+        }
+        if (currentPage < 0) {
+          currentPage = 0;
+        }
+
+        if (currentPage === 0) {
+          // Page 1: Screen share on the left (main spotlight), maximum 3 participants on the right (thumbnail strip)
+          grid.classList.add('spotlight-mode');
+          const main  = document.createElement('div');
+          main.id = 'spotlight-main'; main.className = 'spotlight-main';
+          const strip = document.createElement('div');
+          strip.id = 'thumbnail-strip'; strip.className = 'thumbnail-strip';
+          grid.appendChild(main); grid.appendChild(strip);
+
+          // Add screen share to spotlight main
+          if (screenSharerWrapper) {
+            screenSharerWrapper.style.display = '';
+            screenSharerWrapper.style.border = '';
+            screenSharerWrapper.classList.add('pinned-speaker');
+            main.appendChild(screenSharerWrapper);
+          }
+
+          // Add up to 3 thumbnails
+          const pageThumbnails = normalWrappers.slice(0, 3);
+          normalWrappers.forEach(w => {
+            w.style.border = '';
+            w.classList.remove('pinned-speaker');
+            if (pageThumbnails.includes(w)) {
+              w.style.display = '';
+              strip.appendChild(w);
+            } else {
+              w.style.display = 'none';
+            }
+          });
+        } else {
+          // Page 2+: Participant-only pages (standard 2x2 grid layout)
+          grid.classList.add('paginated-mode');
+          if (screenSharerWrapper) {
+            screenSharerWrapper.style.display = 'none';
+            screenSharerWrapper.classList.remove('pinned-speaker');
+          }
+
+          const pageParticipants = normalWrappers.slice(3 + (currentPage - 1) * 4, 3 + currentPage * 4);
+          normalWrappers.forEach(w => {
+            w.style.border = '';
+            w.classList.remove('pinned-speaker');
+            if (pageParticipants.includes(w)) {
+              w.style.display = '';
+              grid.appendChild(w);
+            } else {
+              w.style.display = 'none';
+            }
+          });
+        }
+
+        // Show/Hide Pagination Controls
+        if (totalPages > 1) {
+          if (controlsContainer) controlsContainer.style.display = 'flex';
+          if (prevBtn) prevBtn.disabled = (currentPage === 0);
+          if (nextBtn) nextBtn.disabled = (currentPage === totalPages - 1);
+          if (indicator) indicator.innerText = `${currentPage + 1} / ${totalPages}`;
+        } else {
+          if (controlsContainer) controlsContainer.style.display = 'none';
+        }
+
+      } else if (pinnedId) {
+        // Normal Pin Mode (Standard spotlight layout: 1 pinned main speaker, all other speakers scroll in the right strip)
+        grid.classList.add('spotlight-mode');
+        const main  = document.createElement('div');
+        main.id = 'spotlight-main'; main.className = 'spotlight-main';
+        const strip = document.createElement('div');
+        strip.id = 'thumbnail-strip'; strip.className = 'thumbnail-strip';
+        grid.appendChild(main); grid.appendChild(strip);
+
+        wrappers.forEach(w => {
+          const isPinned = (w.id === 'local-wrapper' && pinnedId === 'local') ||
+                           (w.id === `wrapper-${pinnedId}`);
+          w.style.border = '';
+          w.style.display = ''; // Make sure all are visible in normal pin strip
+          w.classList.toggle('pinned-speaker', isPinned);
+          (isPinned ? main : strip).appendChild(w);
+        });
+
+        // Hide Pagination Controls
+        if (controlsContainer) controlsContainer.style.display = 'none';
+
+      } else {
+        // Normal Mode (No Pinned elements, No Screen Sharing active)
+        if (wrappers.length > 4) {
+          // Enforce 2x2 pagination mode
+          grid.classList.add('paginated-mode');
+          const totalPages = Math.ceil(wrappers.length / 4);
+          if (currentPage >= totalPages) {
+            currentPage = totalPages - 1;
+          }
+          if (currentPage < 0) {
+            currentPage = 0;
+          }
+
+          const startIndex = currentPage * 4;
+          const endIndex = startIndex + 4;
+          const visibleWrappers = wrappers.slice(startIndex, endIndex);
+
+          wrappers.forEach(w => {
+            w.style.border = '';
+            w.classList.remove('pinned-speaker');
+            if (visibleWrappers.includes(w)) {
+              w.style.display = '';
+              grid.appendChild(w);
+            } else {
+              w.style.display = 'none';
+            }
+          });
+
+          // Show Pagination Controls
+          if (controlsContainer) controlsContainer.style.display = 'flex';
+          if (prevBtn) prevBtn.disabled = (currentPage === 0);
+          if (nextBtn) nextBtn.disabled = (currentPage === totalPages - 1);
+          if (indicator) indicator.innerText = `${currentPage + 1} / ${totalPages}`;
+        } else {
+          // Standard non-paginated grid (1, 2, 3, or 4 participants)
+          wrappers.forEach(w => {
+            w.style.border = '';
+            w.style.display = '';
+            w.classList.remove('pinned-speaker');
+            grid.appendChild(w);
+          });
+
+          // Hide Pagination Controls
+          if (controlsContainer) controlsContainer.style.display = 'none';
+        }
+      }
     }
   }
 
@@ -891,12 +1607,6 @@
       audioAnalyser.fftSize = 256;
       audioDataArray = new Uint8Array(audioAnalyser.frequencyBinCount);
       audioContext.createMediaStreamSource(stream).connect(audioAnalyser);
-      setInterval(() => {
-        if (!audioAnalyser || !audioDataArray) return;
-        audioAnalyser.getByteFrequencyData(audioDataArray);
-        const avg = audioDataArray.reduce((a, b) => a + b, 0) / audioDataArray.length;
-        if (avg > 30 && !pinnedId) pin('local');
-      }, 500);
     } catch(e) { console.warn('Speaker detection unavailable:', e.message); }
   }
 
@@ -1748,7 +2458,14 @@
   async function init() {
     try {
       localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-      document.getElementById('local-video').srcObject = localStream;
+      const localVideo = document.getElementById('local-video');
+      if (localVideo) {
+        localVideo.srcObject = localStream;
+        localVideo.onplaying = () => {
+          const av = document.getElementById('local-avatar');
+          if (av) av.style.display = 'none';
+        };
+      }
       
       const localAvatar = document.getElementById('local-avatar');
       if (localAvatar) {
@@ -1823,7 +2540,10 @@
 
   // Screen share
   document.getElementById('screen-btn').addEventListener('click', async () => {
-    if (isMobile) return;
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+      setStatus('Screen sharing is not supported on this browser/device');
+      return;
+    }
     try {
       const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
       const screenTrack  = screenStream.getVideoTracks()[0];
@@ -2051,14 +2771,82 @@
   if (moreBtn && morePopover) {
     moreBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      const rect = moreBtn.getBoundingClientRect();
-      morePopover.style.left = `${rect.left + (rect.width/2) - 90}px`;
-      morePopover.style.bottom = `${window.innerHeight - rect.top + 12}px`;
+      if (window.innerWidth <= 768) {
+        morePopover.style.left = 'auto';
+        morePopover.style.right = '16px';
+        morePopover.style.bottom = '72px';
+      } else {
+        const rect = moreBtn.getBoundingClientRect();
+        morePopover.style.left = `${rect.left + (rect.width/2) - 95}px`;
+        morePopover.style.right = 'auto';
+        morePopover.style.bottom = `${window.innerHeight - rect.top + 12}px`;
+      }
       const isVisible = morePopover.style.display === 'block';
       morePopover.style.display = isVisible ? 'none' : 'block';
     });
     document.addEventListener('click', () => { morePopover.style.display = 'none'; });
     morePopover.addEventListener('click', e => e.stopPropagation());
+  }
+
+  // Mobile More menu secondary actions
+  const moreChatBtn = document.getElementById('more-chat-btn');
+  if (moreChatBtn) {
+    moreChatBtn.addEventListener('click', () => {
+      if (morePopover) morePopover.style.display = 'none';
+      const chatBtn = document.getElementById('chat-btn');
+      if (chatBtn) chatBtn.click();
+    });
+  }
+
+  const moreParticipantsBtn = document.getElementById('more-participants-btn');
+  if (moreParticipantsBtn) {
+    moreParticipantsBtn.addEventListener('click', () => {
+      if (morePopover) morePopover.style.display = 'none';
+      const partBtn = document.getElementById('participants-btn');
+      if (partBtn) partBtn.click();
+    });
+  }
+
+  const moreRaiseHandBtn = document.getElementById('more-raise-hand-btn');
+  if (moreRaiseHandBtn) {
+    moreRaiseHandBtn.addEventListener('click', () => {
+      if (morePopover) morePopover.style.display = 'none';
+      const rhBtn = document.getElementById('raise-hand-btn');
+      if (rhBtn) rhBtn.click();
+    });
+  }
+
+  const moreReactionsBtn = document.getElementById('more-reactions-btn');
+  if (moreReactionsBtn) {
+    moreReactionsBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (morePopover) morePopover.style.display = 'none';
+      const reactPicker = document.getElementById('reaction-picker');
+      if (reactPicker) reactPicker.style.display = 'flex';
+    });
+  }
+
+  const moreTranslationBtn = document.getElementById('more-translation-btn');
+  if (moreTranslationBtn) {
+    moreTranslationBtn.addEventListener('click', () => {
+      if (morePopover) morePopover.style.display = 'none';
+      const mobileSelect = document.getElementById('mobile-translation-select');
+      if (mobileSelect) mobileSelect.value = captionLanguage;
+      openModal('translation-modal');
+    });
+  }
+
+  const mobileTranslationSelect = document.getElementById('mobile-translation-select');
+  if (mobileTranslationSelect) {
+    mobileTranslationSelect.addEventListener('change', (e) => {
+      captionLanguage = e.target.value;
+      localStorage.setItem('meetingCaptionLang', captionLanguage);
+      const desktopSelect = document.getElementById('translation-lang-select');
+      if (desktopSelect) desktopSelect.value = captionLanguage;
+      const selectedLangName = e.target.options[e.target.selectedIndex]?.text;
+      setStatus(`Captions set to ${selectedLangName}`);
+      closeModal('translation-modal');
+    });
   }
 
   // Attach settings and details trigger
@@ -2084,6 +2872,43 @@
       openModal('details-modal');
     });
   }
+
+  // Mobile Touch Swipe Gesture on Participant Video Area
+  let touchStartX = 0;
+  let touchStartY = 0;
+  const gridWrapperEl = document.querySelector('.video-grid-wrapper');
+  if (gridWrapperEl) {
+    gridWrapperEl.addEventListener('touchstart', (e) => {
+      if (e.changedTouches && e.changedTouches.length > 0) {
+        touchStartX = e.changedTouches[0].screenX;
+        touchStartY = e.changedTouches[0].screenY;
+      }
+    }, { passive: true });
+
+    gridWrapperEl.addEventListener('touchend', (e) => {
+      if (e.changedTouches && e.changedTouches.length > 0) {
+        const diffX = e.changedTouches[0].screenX - touchStartX;
+        const diffY = e.changedTouches[0].screenY - touchStartY;
+        // Check for meaningful horizontal swipe
+        if (Math.abs(diffX) > 45 && Math.abs(diffX) > Math.abs(diffY) * 1.4) {
+          if (diffX < 0) {
+            navigatePage(1); // Swiped left -> next page
+          } else {
+            navigatePage(-1); // Swiped right -> prev page
+          }
+        }
+      }
+    }, { passive: true });
+  }
+
+  // Window Resize Debounce to recalculate mobile/desktop layouts
+  let resizeTimer = null;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+      rebuildGridLayout();
+    }, 150);
+  });
 
   // Speaker active highlight detection update local wrapper class
   let localAudioInterval = setInterval(() => {
