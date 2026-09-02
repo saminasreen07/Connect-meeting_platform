@@ -403,6 +403,10 @@
       min-height: 0 !important;
       aspect-ratio: 16/9 !important;
     }
+    .video-grid.mobile-screen-share-p1 > .video-wrapper video {
+      object-fit: contain !important;
+      background-color: #000;
+    }
     .mobile-sub-row {
       display: flex !important;
       flex-direction: row !important;
@@ -1767,33 +1771,20 @@
       return;
     }
 
-    // Abort any existing pending translation request for this speaker to prevent concurrency backlog
-    if (activeTranslationControllers.has(speakerSafeId)) {
-      try {
-        activeTranslationControllers.get(speakerSafeId).abort();
-      } catch(e) {}
+    if (!isFinal) {
+      showPeerCaption(speakerName, text, false);
     }
 
-    const controller = new AbortController();
-    activeTranslationControllers.set(speakerSafeId, controller);
-
-    translateText(text, sourceLang, targetLang, controller.signal)
+    translateText(text, sourceLang, targetLang)
       .then(translated => {
-        if (activeTranslationControllers.get(speakerSafeId) === controller) {
-          activeTranslationControllers.delete(speakerSafeId);
-          if (captionEnabled && translated) {
-            showPeerCaption(speakerName, translated, isFinal);
-          }
+        if (captionEnabled && translated) {
+          showPeerCaption(speakerName, translated, isFinal);
         }
       })
       .catch(err => {
-        if (err.name === 'AbortError') {
-          console.log(`[Translation] Aborted request for ${speakerName}`);
-        } else {
-          console.warn('[Translation] Fetch error:', err);
-          if (activeTranslationControllers.get(speakerSafeId) === controller) {
-            activeTranslationControllers.delete(speakerSafeId);
-          }
+        console.warn('[Translation] Fetch error:', err);
+        if (captionEnabled) {
+          showPeerCaption(speakerName, text, isFinal);
         }
       });
   }
@@ -2306,7 +2297,8 @@
 
       if (data.type === 'transcript') {
         if (!isValidSpeech(data.text)) return;
-        const speakerName = data.speaker || data.sender || 'Unknown';
+        const isMe = (data.user_id === USER_ID || data.speaker === USERNAME || data.sender === USERNAME || data.is_self);
+        const speakerName = isMe ? USERNAME + ' (You)' : (data.speaker || data.sender || 'Unknown');
         const detectedLang = data.detected_language || data.speaking_lang || data.lang || 'auto';
         const srcShort = shortLangCode(detectedLang);
         const tgtShort = shortLangCode(captionLanguage);
@@ -2316,30 +2308,10 @@
         const speakerSafeId = 'caption-peer-' + speakerName.replace(/[^a-zA-Z0-9_-]/g, '_');
         const isFinal = (data.is_final !== false);
 
-        if (captionLanguage === 'original' || !tgtShort || tgtShort === 'auto' || srcShort === tgtShort) {
-          if (translationDebounceTimers.has(speakerSafeId)) {
-            clearTimeout(translationDebounceTimers.get(speakerSafeId));
-            translationDebounceTimers.delete(speakerSafeId);
-          }
+        if (captionLanguage === 'original' || !tgtShort || tgtShort === 'auto' || (srcShort !== 'auto' && srcShort === tgtShort)) {
           showPeerCaption(speakerName, data.text, isFinal);
         } else {
-          if (isFinal) {
-            if (translationDebounceTimers.has(speakerSafeId)) {
-              clearTimeout(translationDebounceTimers.get(speakerSafeId));
-              translationDebounceTimers.delete(speakerSafeId);
-            }
-            doTranslation(data.text, detectedLang, tgtShort, speakerName, speakerSafeId, true);
-          } else {
-            showPeerCaption(speakerName, data.text, false);
-            if (translationDebounceTimers.has(speakerSafeId)) {
-              clearTimeout(translationDebounceTimers.get(speakerSafeId));
-            }
-            const timer = setTimeout(() => {
-              translationDebounceTimers.delete(speakerSafeId);
-              doTranslation(data.text, detectedLang, tgtShort, speakerName, speakerSafeId, false);
-            }, 800);
-            translationDebounceTimers.set(speakerSafeId, timer);
-          }
+          doTranslation(data.text, detectedLang, tgtShort, speakerName, speakerSafeId, isFinal);
         }
         return;
       }
@@ -2646,6 +2618,10 @@
     btn.classList.toggle('active', handRaised);
     btn.style.background = '';
     btn.title = handRaised ? 'Lower Hand' : 'Raise Hand';
+    const mobileBtn = document.getElementById('more-raise-hand-btn');
+    if (mobileBtn) {
+      mobileBtn.innerHTML = `<span style="margin-right:8px;">✋</span> ${handRaised ? 'Lower Hand' : 'Raise Hand'}`;
+    }
     updateVideoWrapperHandIndicator(USER_ID, handRaised);
     if (participantsMap.has(USER_ID)) {
       participantsMap.get(USER_ID).raised_hand = handRaised;

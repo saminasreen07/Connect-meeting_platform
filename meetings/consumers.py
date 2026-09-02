@@ -297,14 +297,15 @@ class MeetingConsumer(AsyncWebsocketConsumer):
                 clean_mime = 'audio/webm'
 
             if gemini_key and gemini_key.strip():
-                for model_name in ['gemini-3.6-flash', 'gemini-3.5-flash-lite', 'gemini-3.1-flash-lite', 'gemini-3.7-flash', 'gemini-flash-latest', 'gemini-2.0-flash', 'gemini-1.5-flash']:
+                for model_name in ['gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-flash-latest', 'gemini-2.5-flash']:
                     try:
                         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={gemini_key.strip()}"
                         prompt = (
                             "Transcribe the spoken words in this audio in their original spoken language. "
                             "Do NOT output timestamps (no 00:00), no subtitle headers, no explanations. "
+                            "Detect the spoken language automatically. "
                             "If silence or no speech, return {\"text\": \"\", \"language\": \"en\"}. "
-                            "Return ONLY valid JSON with keys 'text' and 'language'."
+                            "Return ONLY valid JSON with keys 'text' and 'language' (ISO 2-letter code like 'en', 'ta', 'ml', 'hi', 'te', 'es', etc.)."
                         )
                         payload = {
                             "contents": [{
@@ -318,7 +319,7 @@ class MeetingConsumer(AsyncWebsocketConsumer):
                                 "maxOutputTokens": 300,
                             }
                         }
-                        r = requests.post(url, json=payload, timeout=5)
+                        r = requests.post(url, json=payload, timeout=4)
                         if r.status_code == 200:
                             candidates = r.json().get('candidates', [])
                             if candidates:

@@ -106,7 +106,20 @@ def meeting_room(request, room_code):
 @login_required
 def gladia_token(request):
     """Generates a temporary token/URL for Gladia WebSocket."""
-    # Example logic - replace with your actual provider integration
+    from django.conf import settings as django_settings
+    gladia_key = getattr(django_settings, 'GLADIA_API_KEY', '') or os.getenv('GLADIA_API_KEY', '')
+    if gladia_key:
+        try:
+            r = requests.post(
+                'https://api.gladia.io/v2/live',
+                headers={'x-gladia-key': gladia_key.strip(), 'Content-Type': 'application/json'},
+                json={'sample_rate': 16000, 'encoding': 'wav/pcm', 'language_config': {'languages': []}},
+                timeout=3.0
+            )
+            if r.status_code == 201:
+                return JsonResponse(r.json())
+        except Exception:
+            pass
     return JsonResponse({'token_url': 'wss://api.gladia.io/v2/live?language_behaviour=automatic'})
 
 
@@ -233,15 +246,15 @@ def translate_text(request):
         target_name = lang_names.get(tgt, tgt)
         source_name = lang_names.get(src, '')
 
-        # ── PRIMARY: Gemini 3.6 Flash Translation ────────────────────────────
+        # ── PRIMARY: Gemini Flash Translation ────────────────────────────
         if gemini_api_key and gemini_api_key.strip():
             src_desc = f" from {source_name}" if source_name else ""
             prompt = (
                 f"Translate the following speech transcript{src_desc} into {target_name} ({tgt}). "
-                f"Maintain natural phrasing and colloquial context. "
-                f"Return ONLY the direct translated text. Do not include notes, quotes, or explanations:\n\n{text}"
+                f"Maintain natural conversational phrasing and context. "
+                f"Return ONLY the direct translated text in {target_name} script without romanized pronunciation, transliteration, notes, quotes, or explanations:\n\n{text}"
             )
-            for model_name in ['gemini-3.6-flash', 'gemini-3.5-flash-lite', 'gemini-3.1-flash-lite', 'gemini-3.7-flash', 'gemini-flash-latest']:
+            for model_name in ['gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-flash-latest', 'gemini-2.5-flash']:
                 try:
                     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={gemini_api_key.strip()}"
                     headers = {
@@ -250,11 +263,11 @@ def translate_text(request):
                     payload = {
                         'contents': [{'parts': [{'text': prompt}]}],
                         'generationConfig': {
-                            'temperature': 0.2,
+                            'temperature': 0.1,
                             'maxOutputTokens': 300,
                         }
                     }
-                    r = requests.post(url, headers=headers, json=payload, timeout=2.5)
+                    r = requests.post(url, headers=headers, json=payload, timeout=3.0)
                     if r.status_code == 200:
                         res = r.json()
                         candidates = res.get('candidates', [])
@@ -262,6 +275,9 @@ def translate_text(request):
                             parts = candidates[0].get('content', {}).get('parts', [])
                             if parts and parts[0].get('text'):
                                 translated = parts[0]['text'].strip()
+                                # Remove any unwanted wrapped quotes
+                                if (translated.startswith('"') and translated.endswith('"')) or (translated.startswith("'") and translated.endswith("'")):
+                                    translated = translated[1:-1].strip()
                                 if translated:
                                     set_cached_translation(cache_key, translated)
                                     return JsonResponse({'translated_text': translated})
@@ -348,17 +364,6 @@ def generate_insights(request, room_code):
     if not is_participant:
         return HttpResponseForbidden("You must be a participant of this meeting to generate insights.")
 
-    # Concurrency / Duplicate generation deduplication (10s window)
-    try:
-        existing_insight = getattr(meeting, 'ai_insight', None)
-        if existing_insight and existing_insight.summary and request.GET.get('force') != '1':
-            age_seconds = (timezone.now() - existing_insight.created_at).total_seconds()
-            if age_seconds < 10:
-                messages.info(request, "Displaying current AI insights.")
-                return redirect('meeting_details', room_code=room_code)
-    except Exception:
-        pass
-
     all_transcripts = TranscriptMessage.objects.filter(
         meeting=meeting
     ).order_by('timestamp').select_related('speaker')
@@ -379,35 +384,37 @@ def generate_insights(request, room_code):
     ]
     full_transcript = "\n".join(transcript_lines)
     output_language = request.GET.get('lang', 'English')
+    all_speakers_list = list(dict.fromkeys(t.speaker.username for t in transcripts))
 
     prompt = f"""You are an expert AI meeting intelligence and minutes writer.
 
-Analyze the following canonical meeting transcript with speaker attributions and timestamps.
+Analyze the following complete canonical meeting transcript containing all participants' spoken speech with speaker attributions and timestamps.
 Note that participants may have spoken in different languages (e.g. English, Tamil, Hindi, Malayalam, Telugu, etc.).
 
-STRICT ACCURACY RULES:
-- Do NOT hallucinate or fabricate information, decisions, action items, or deadlines that were not explicitly stated.
-- Preserve speaker context and attribution accurately.
-- Extract ONLY the actual points discussed, actual decisions agreed upon, and real action items.
-- If no decisions or action items were discussed, write "None identified".
+STRICT ACCURACY AND SPEAKER ATTRIBUTION RULES:
+- Include and represent all active participants ({', '.join(all_speakers_list)}). Do NOT state that any speaker was silent or that only one person participated if multiple participants spoke in the transcript.
+- Do NOT hallucinate, invent, or fabricate information, decisions, action items, or deadlines that were not explicitly stated.
+- Extract ONLY the actual points discussed, actual decisions agreed upon, and real action items from the transcript.
+- If no decisions were discussed or agreed upon, write "None identified."
+- If no action items were assigned, write "None identified."
 - Write the final meeting summary and minutes clearly in {output_language}.
 
 OUTPUT FORMAT (Follow this exact structure with clear markdown headings and bullet points):
 **Executive Summary:**
-[A concise 2-3 sentence overview of the meeting purpose, key topics, and outcomes]
+[A concise 2-3 sentence overview of the meeting purpose, key topics discussed, and outcomes representing all speakers]
 
 **Key Discussion Points:**
 • [Topic/point discussed and who spoke about it]
 • [Topic/point discussed]
 
 **Decisions & Conclusions:**
-• [Explicit decision or conclusion agreed upon during the meeting]
+• [Explicit decision or conclusion agreed upon during the meeting, or 'None identified.']
 
 **Action Items:**
 • [Task description] — Assigned to: [Person's Name] | Deadline: [Date/Time if mentioned, else 'Not specified']
 
 **Important Dates or Deadlines:**
-• [Date/deadline mentioned]
+• [Date/deadline mentioned, or 'None identified.']
 
 MEETING TRANSCRIPT:
 {full_transcript}
@@ -418,7 +425,7 @@ MEETING MINUTES:"""
     api_key = getattr(django_settings, 'GEMINI_API_KEY', '') or os.getenv('GEMINI_API_KEY', '')
 
     if api_key and api_key.strip():
-        for model_name in ['gemini-3.6-flash', 'gemini-3.5-flash-lite', 'gemini-3.1-flash-lite', 'gemini-3.7-flash', 'gemini-flash-latest']:
+        for model_name in ['gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-flash-latest', 'gemini-2.5-flash']:
             try:
                 url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key.strip()}"
                 headers = {
