@@ -61,7 +61,7 @@ google-api-core==2.33.0
 google-auth==2.56.2
 googleapis-common-protos==1.75.0
 grpcio==1.83.0
-grpcio-status==1.71.2
+grpcio-status==1.83.0
 proto-plus==1.28.2
 protobuf==5.29.6
 assemblyai==1.0.0
