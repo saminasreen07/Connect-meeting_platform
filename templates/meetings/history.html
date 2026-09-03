@@ -1371,6 +1371,21 @@
 <!-- Toast feedback element -->
 <div id="dbToast" class="db-toast"></div>
 
+<!-- Delete Confirmation Modal -->
+<div class="db-modal-overlay" id="deleteModalOverlay">
+    <div class="db-modal-card">
+        <h3 class="db-modal-title">Delete this meeting?</h3>
+        <p class="db-modal-message">This will permanently remove this meeting from your meeting history. This action cannot be undone.</p>
+        <div class="db-modal-actions">
+            <button type="button" class="db-modal-btn db-modal-btn-cancel" id="cancelDeleteBtn">Cancel</button>
+            <form id="deleteMeetingForm" method="post" style="margin: 0;">
+                {% csrf_token %}
+                <button type="submit" class="db-modal-btn db-modal-btn-delete">Delete Meeting</button>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
     // ── Toast Notification Helper ─────────────────────────────
     function showToast(message, type) {
@@ -1388,228 +1403,223 @@
         }, 3500);
     }
 
-    // ── Mobile sidebar drawer toggle ────────────────────────────
-    var hamburger = document.getElementById('dbHamburger');
-    var sidebar   = document.getElementById('dbSidebar');
-    var overlay   = document.getElementById('dbOverlay');
+    document.addEventListener('DOMContentLoaded', function () {
+        // ── Mobile sidebar drawer toggle ────────────────────────────
+        var hamburger = document.getElementById('dbHamburger');
+        var sidebar   = document.getElementById('dbSidebar');
+        var overlay   = document.getElementById('dbOverlay');
 
-    function openSidebar() {
-        if (sidebar) sidebar.classList.add('open');
-        if (overlay) overlay.classList.add('open');
-        if (hamburger) hamburger.setAttribute('aria-expanded', 'true');
-    }
-    function closeSidebar() {
-        if (sidebar) sidebar.classList.remove('open');
-        if (overlay) overlay.classList.remove('open');
-        if (hamburger) hamburger.setAttribute('aria-expanded', 'false');
-    }
+        function openSidebar() {
+            if (sidebar) sidebar.classList.add('open');
+            if (overlay) overlay.classList.add('open');
+            if (hamburger) hamburger.setAttribute('aria-expanded', 'true');
+        }
+        function closeSidebar() {
+            if (sidebar) sidebar.classList.remove('open');
+            if (overlay) overlay.classList.remove('open');
+            if (hamburger) hamburger.setAttribute('aria-expanded', 'false');
+        }
 
-    if (hamburger && sidebar && overlay) {
-        hamburger.addEventListener('click', function () {
-            sidebar.classList.contains('open') ? closeSidebar() : openSidebar();
-        });
-        overlay.addEventListener('click', closeSidebar);
-        document.addEventListener('keydown', function (e) {
-            if (e.key === 'Escape') closeSidebar();
-        });
-    }
-
-    // ── Dropdown Actions (Toggle absolute popups) ──────────────
-    document.addEventListener('click', function (e) {
-        var btn = e.target.closest('.db-action-dropdown-btn');
-        var wraps = document.querySelectorAll('.db-action-dropdown-wrap');
-        
-        if (btn) {
-            var currentWrap = btn.closest('.db-action-dropdown-wrap');
-            wraps.forEach(function (w) {
-                if (w !== currentWrap) w.classList.remove('open');
+        if (hamburger && sidebar && overlay) {
+            hamburger.addEventListener('click', function () {
+                sidebar.classList.contains('open') ? closeSidebar() : openSidebar();
             });
-            currentWrap.classList.toggle('open');
-            e.stopPropagation();
-        } else {
-            wraps.forEach(function (w) {
-                w.classList.remove('open');
+            overlay.addEventListener('click', closeSidebar);
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') closeSidebar();
             });
         }
-    });
 
-    // ── Client-side search & dropdown filters ──────────────────
-    var searchInput = document.getElementById('dbMtgSearch');
-    var filterSelect = document.getElementById('dbMtgFilter');
-    var noResultsEmpty = document.getElementById('dbMtgEmptyState');
-
-    function filterMeetings() {
-        var query = searchInput ? searchInput.value.toLowerCase().trim() : '';
-        var filterVal = filterSelect ? filterSelect.value : 'all';
-        var currentRows = document.querySelectorAll('.db-mtg-row');
-        var visibleCount = 0;
-
-        currentRows.forEach(function (row) {
-            var title = row.getAttribute('data-title') || '';
-            var code = row.getAttribute('data-code') || '';
-            var role = row.getAttribute('data-role') || '';
+        // ── Dropdown Actions (Toggle absolute popups) ──────────────
+        document.addEventListener('click', function (e) {
+            var btn = e.target.closest('.db-action-dropdown-btn');
+            var wraps = document.querySelectorAll('.db-action-dropdown-wrap');
             
-            var matchesQuery = title.indexOf(query) !== -1 || code.indexOf(query) !== -1;
-            var matchesFilter = filterVal === 'all' || role === filterVal;
-
-            if (matchesQuery && matchesFilter) {
-                row.style.display = '';
-                visibleCount++;
-            } else {
-                row.style.display = 'none';
-            }
-        });
-
-        if (noResultsEmpty) {
-            if (visibleCount === 0) {
-                noResultsEmpty.style.display = 'flex';
-                var desc = noResultsEmpty.querySelector('.db-empty-desc');
-                var btn = noResultsEmpty.querySelector('.db-empty-btn');
-                if (currentRows.length > 0) {
-                    if (desc) desc.textContent = "No meetings match your search query or filter selection.";
-                    if (btn) btn.style.display = 'none';
-                } else {
-                    if (desc) desc.textContent = "Your meetings will appear here once you create or join one.";
-                    if (btn) btn.style.display = 'inline-flex';
-                }
-            } else {
-                noResultsEmpty.style.display = 'none';
-            }
-        }
-    }
-
-    if (searchInput) searchInput.addEventListener('input', filterMeetings);
-    if (filterSelect) filterSelect.addEventListener('change', filterMeetings);
-
-    // ── Delete Confirmation Modal Logic (AJAX + Instant Removal) ─
-    var deleteModalOverlay = document.getElementById('deleteModalOverlay');
-    var cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
-    var deleteMeetingForm = document.getElementById('deleteMeetingForm');
-    var activeDeleteRoomCode = null;
-
-    document.addEventListener('click', function (e) {
-        var trigger = e.target.closest('.trigger-delete-modal');
-        if (trigger) {
-            var roomCode = trigger.getAttribute('data-room');
-            if (roomCode && deleteMeetingForm) {
-                activeDeleteRoomCode = roomCode;
-                var urlTemplate = "{% url 'delete_meeting' 'ROOM_CODE_PLACEHOLDER' %}";
-                deleteMeetingForm.action = urlTemplate.replace('ROOM_CODE_PLACEHOLDER', roomCode);
-                if (deleteModalOverlay) {
-                    deleteModalOverlay.classList.add('active');
-                }
-            }
-            e.preventDefault();
-        }
-    });
-
-    function closeDeleteModal() {
-        if (deleteModalOverlay) {
-            deleteModalOverlay.classList.remove('active');
-        }
-        activeDeleteRoomCode = null;
-        var submitBtn = deleteMeetingForm ? deleteMeetingForm.querySelector('button[type="submit"]') : null;
-        if (submitBtn) {
-            submitBtn.disabled = false;
-            submitBtn.textContent = 'Delete Meeting';
-        }
-    }
-
-    if (cancelDeleteBtn) {
-        cancelDeleteBtn.addEventListener('click', closeDeleteModal);
-    }
-
-    if (deleteModalOverlay) {
-        deleteModalOverlay.addEventListener('click', function (e) {
-            if (e.target === deleteModalOverlay) {
-                closeDeleteModal();
-            }
-        });
-    }
-
-    if (deleteMeetingForm) {
-        deleteMeetingForm.addEventListener('submit', function (e) {
-            e.preventDefault();
-            var submitBtn = deleteMeetingForm.querySelector('button[type="submit"]');
-            if (submitBtn) {
-                submitBtn.disabled = true;
-                submitBtn.textContent = 'Deleting...';
-            }
-
-            var csrfToken = document.querySelector('[name=csrfmiddlewaretoken]') ? 
-                            document.querySelector('[name=csrfmiddlewaretoken]').value : '';
-
-            fetch(deleteMeetingForm.action, {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': csrfToken,
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'Content-Type': 'application/json'
-                }
-            })
-            .then(function (res) {
-                if (res.ok) {
-                    return res.json().catch(function () { return { success: true }; });
-                }
-                return res.json().then(function (errData) {
-                    throw new Error(errData.error || 'Failed to delete meeting.');
+            if (btn) {
+                var currentWrap = btn.closest('.db-action-dropdown-wrap');
+                wraps.forEach(function (w) {
+                    if (w !== currentWrap) w.classList.remove('open');
                 });
-            })
-            .then(function (data) {
-                var roomCodeToDelete = activeDeleteRoomCode;
-                closeDeleteModal();
+                currentWrap.classList.toggle('open');
+                e.stopPropagation();
+            } else {
+                wraps.forEach(function (w) {
+                    w.classList.remove('open');
+                });
+            }
+        });
+
+        // ── Client-side search & dropdown filters ──────────────────
+        var searchInput = document.getElementById('dbMtgSearch');
+        var filterSelect = document.getElementById('dbMtgFilter');
+        var noResultsEmpty = document.getElementById('dbMtgEmptyState');
+
+        function filterMeetings() {
+            var query = searchInput ? searchInput.value.toLowerCase().trim() : '';
+            var filterVal = filterSelect ? filterSelect.value : 'all';
+            var currentRows = document.querySelectorAll('.db-mtg-row');
+            var visibleCount = 0;
+
+            currentRows.forEach(function (row) {
+                var title = row.getAttribute('data-title') || '';
+                var code = row.getAttribute('data-code') || '';
+                var role = row.getAttribute('data-role') || '';
                 
-                if (roomCodeToDelete) {
-                    var targetRow = document.querySelector('.db-mtg-row[data-code="' + roomCodeToDelete.toLowerCase() + '"]');
-                    if (targetRow) {
-                        targetRow.style.opacity = '0';
-                        targetRow.style.transform = 'translateY(-8px) scale(0.98)';
-                        targetRow.style.maxHeight = targetRow.offsetHeight + 'px';
-                        setTimeout(function () {
-                            targetRow.style.maxHeight = '0';
-                            targetRow.style.paddingTop = '0';
-                            targetRow.style.paddingBottom = '0';
-                            targetRow.style.marginTop = '0';
-                            targetRow.style.marginBottom = '0';
-                            targetRow.style.border = 'none';
-                            targetRow.style.overflow = 'hidden';
-                            setTimeout(function () {
-                                targetRow.remove();
-                                filterMeetings();
-                                showToast('Meeting deleted successfully.', 'success');
-                            }, 250);
-                        }, 50);
+                var matchesQuery = title.indexOf(query) !== -1 || code.indexOf(query) !== -1;
+                var matchesFilter = filterVal === 'all' || role === filterVal;
+
+                if (matchesQuery && matchesFilter) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+
+            if (noResultsEmpty) {
+                if (visibleCount === 0) {
+                    noResultsEmpty.style.display = 'flex';
+                    var desc = noResultsEmpty.querySelector('.db-empty-desc');
+                    var btn = noResultsEmpty.querySelector('.db-empty-btn');
+                    if (currentRows.length > 0) {
+                        if (desc) desc.textContent = "No meetings match your search query or filter selection.";
+                        if (btn) btn.style.display = 'none';
                     } else {
-                        filterMeetings();
-                        showToast('Meeting deleted successfully.', 'success');
+                        if (desc) desc.textContent = "Your meetings will appear here once you create or join one.";
+                        if (btn) btn.style.display = 'inline-flex';
+                    }
+                } else {
+                    noResultsEmpty.style.display = 'none';
+                }
+            }
+        }
+
+        if (searchInput) searchInput.addEventListener('input', filterMeetings);
+        if (filterSelect) filterSelect.addEventListener('change', filterMeetings);
+
+        // ── Delete Confirmation Modal Logic (AJAX + Instant Removal) ─
+        var deleteModalOverlay = document.getElementById('deleteModalOverlay');
+        var cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
+        var deleteMeetingForm = document.getElementById('deleteMeetingForm');
+        var activeDeleteRoomCode = null;
+
+        document.addEventListener('click', function (e) {
+            var trigger = e.target.closest('.trigger-delete-modal');
+            if (trigger) {
+                var roomCode = trigger.getAttribute('data-room');
+                if (roomCode) {
+                    activeDeleteRoomCode = roomCode;
+                    var form = document.getElementById('deleteMeetingForm');
+                    var overlayEl = document.getElementById('deleteModalOverlay');
+                    if (form) {
+                        var urlTemplate = "{% url 'delete_meeting' 'ROOM_CODE_PLACEHOLDER' %}";
+                        form.action = urlTemplate.replace('ROOM_CODE_PLACEHOLDER', roomCode);
+                    }
+                    if (overlayEl) {
+                        overlayEl.classList.add('active');
                     }
                 }
-            })
-            .catch(function (err) {
-                if (submitBtn) {
-                    submitBtn.disabled = false;
-                    submitBtn.textContent = 'Delete Meeting';
-                }
-                showToast(err.message || 'Error deleting meeting. Please try again.', 'error');
-            });
+                e.preventDefault();
+            }
         });
-    }
-</script>
 
-<!-- Delete Confirmation Modal -->
-<div class="db-modal-overlay" id="deleteModalOverlay">
-    <div class="db-modal-card">
-        <h3 class="db-modal-title">Delete this meeting?</h3>
-        <p class="db-modal-message">This will permanently remove this meeting from your meeting history. This action cannot be undone.</p>
-        <div class="db-modal-actions">
-            <button type="button" class="db-modal-btn db-modal-btn-cancel" id="cancelDeleteBtn">Cancel</button>
-            <form id="deleteMeetingForm" method="post" style="margin: 0;">
-                {% csrf_token %}
-                <button type="submit" class="db-modal-btn db-modal-btn-delete">Delete Meeting</button>
-            </form>
-        </div>
-    </div>
-</div>
+        function closeDeleteModal() {
+            var overlayEl = document.getElementById('deleteModalOverlay');
+            if (overlayEl) {
+                overlayEl.classList.remove('active');
+            }
+            activeDeleteRoomCode = null;
+            var form = document.getElementById('deleteMeetingForm');
+            var submitBtn = form ? form.querySelector('button[type="submit"]') : null;
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Delete Meeting';
+            }
+        }
+
+        if (cancelDeleteBtn) {
+            cancelDeleteBtn.addEventListener('click', closeDeleteModal);
+        }
+
+        if (deleteModalOverlay) {
+            deleteModalOverlay.addEventListener('click', function (e) {
+                if (e.target === deleteModalOverlay) {
+                    closeDeleteModal();
+                }
+            });
+        }
+
+        if (deleteMeetingForm) {
+            deleteMeetingForm.addEventListener('submit', function (e) {
+                e.preventDefault();
+                var form = document.getElementById('deleteMeetingForm') || deleteMeetingForm;
+                var submitBtn = form.querySelector('button[type="submit"]');
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.textContent = 'Deleting...';
+                }
+
+                var csrfInput = form.querySelector('[name=csrfmiddlewaretoken]');
+                var csrfToken = csrfInput ? csrfInput.value : '';
+
+                fetch(form.action, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken,
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(function (res) {
+                    if (res.ok) {
+                        return res.json().catch(function () { return { success: true }; });
+                    }
+                    return res.json().then(function (errData) {
+                        throw new Error(errData.error || 'Failed to delete meeting.');
+                    });
+                })
+                .then(function (data) {
+                    var roomCodeToDelete = activeDeleteRoomCode;
+                    closeDeleteModal();
+                    
+                    if (roomCodeToDelete) {
+                        var targetRow = document.querySelector('.db-mtg-row[data-code="' + roomCodeToDelete.toLowerCase() + '"]') ||
+                                        document.getElementById('meeting-row-' + roomCodeToDelete);
+                        if (targetRow) {
+                            targetRow.style.opacity = '0';
+                            targetRow.style.transform = 'translateY(-8px) scale(0.98)';
+                            targetRow.style.maxHeight = targetRow.offsetHeight + 'px';
+                            setTimeout(function () {
+                                targetRow.style.maxHeight = '0';
+                                targetRow.style.paddingTop = '0';
+                                targetRow.style.paddingBottom = '0';
+                                targetRow.style.marginTop = '0';
+                                targetRow.style.marginBottom = '0';
+                                targetRow.style.border = 'none';
+                                targetRow.style.overflow = 'hidden';
+                                setTimeout(function () {
+                                    targetRow.remove();
+                                    filterMeetings();
+                                    showToast('Meeting deleted successfully.', 'success');
+                                }, 250);
+                            }, 50);
+                        } else {
+                            filterMeetings();
+                            showToast('Meeting deleted successfully.', 'success');
+                        }
+                    }
+                })
+                .catch(function (err) {
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = 'Delete Meeting';
+                    }
+                    showToast(err.message || 'Error deleting meeting. Please try again.', 'error');
+                });
+            });
+        }
+    });
+</script>
 
 </body>
 </html>

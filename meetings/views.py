@@ -151,7 +151,8 @@ def leave_meeting(request, room_code):
 
 @login_required
 def meeting_history(request):
-    meetings = Meeting.objects.filter(participants__user=request.user).distinct().order_by('-created_at')
+    from django.db.models import Q
+    meetings = Meeting.objects.filter(Q(host=request.user) | Q(participants__user=request.user)).distinct().order_by('-created_at')
     return render(request, 'meetings/history.html', {'meetings': meetings})
 
 

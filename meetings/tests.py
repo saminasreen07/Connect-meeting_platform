@@ -75,6 +75,57 @@ class MeetingViewsTestCase(TestCase):
         self.assertEqual(response.status_code, 403)
         self.assertTrue(Meeting.objects.filter(room_code=self.meeting.room_code).exists())
 
+    def test_delete_meeting_ajax_as_host(self):
+        self.client.login(username='hostuser', password='password123')
+        url = reverse('delete_meeting', kwargs={'room_code': self.meeting.room_code})
+        response = self.client.post(
+            url,
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+            content_type='application/json'
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data.get('success'))
+        self.assertEqual(data.get('room_code'), self.meeting.room_code)
+        self.assertFalse(Meeting.objects.filter(room_code=self.meeting.room_code).exists())
+
+    def test_delete_meeting_ajax_as_non_host(self):
+        self.client.login(username='testuser', password='password123')
+        url = reverse('delete_meeting', kwargs={'room_code': self.meeting.room_code})
+        response = self.client.post(
+            url,
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+            content_type='application/json'
+        )
+        self.assertEqual(response.status_code, 403)
+        data = response.json()
+        self.assertFalse(data.get('success'))
+        self.assertTrue(Meeting.objects.filter(room_code=self.meeting.room_code).exists())
+
+    def test_delete_meeting_multi_meeting_isolation_and_cascade(self):
+        self.client.login(username='hostuser', password='password123')
+        meeting_a = Meeting.objects.create(host=self.host, title='Meeting A')
+        meeting_b = Meeting.objects.create(host=self.host, title='Meeting B')
+        meeting_c = Meeting.objects.create(host=self.host, title='Meeting C')
+
+        Participant.objects.create(meeting=meeting_b, user=self.host)
+        ChatMessage.objects.create(meeting=meeting_b, sender=self.host, message='Message in B')
+        TranscriptMessage.objects.create(meeting=meeting_b, speaker=self.host, text='Transcript in B')
+
+        # Delete Meeting B
+        url = reverse('delete_meeting', kwargs={'room_code': meeting_b.room_code})
+        response = self.client.post(url, HTTP_X_REQUESTED_WITH='XMLHttpRequest', content_type='application/json')
+        self.assertEqual(response.status_code, 200)
+
+        # Confirm Meeting B is deleted, along with its messages and transcripts
+        self.assertFalse(Meeting.objects.filter(room_code=meeting_b.room_code).exists())
+        self.assertFalse(ChatMessage.objects.filter(meeting=meeting_b).exists())
+        self.assertFalse(TranscriptMessage.objects.filter(meeting=meeting_b).exists())
+
+        # Confirm Meeting A and Meeting C remain intact
+        self.assertTrue(Meeting.objects.filter(room_code=meeting_a.room_code).exists())
+        self.assertTrue(Meeting.objects.filter(room_code=meeting_c.room_code).exists())
+
     def test_translate_endpoint(self):
         self.client.login(username='testuser', password='password123')
         url = reverse('translate_text')

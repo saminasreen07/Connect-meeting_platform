@@ -22,14 +22,14 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
 
 DEBUG = os.getenv('DEBUG', 'True').lower() in ('true', '1', 't')
 
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '192.168.1.4']
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '192.168.1.4', '.onrender.com']
 
 if DEBUG:
     ALLOWED_HOSTS = ['*']
 else:
     env_allowed_hosts = os.getenv('ALLOWED_HOSTS')
     if env_allowed_hosts:
-        ALLOWED_HOSTS.extend([h.strip() for h in env_allowed_hosts.split(',')])
+        ALLOWED_HOSTS.extend([h.strip() for h in env_allowed_hosts.split(',') if h.strip()])
 
 # Application definition
 
@@ -55,6 +55,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -89,15 +90,17 @@ WSGI_APPLICATION = 'core.wsgi.application'
 DATABASE_URL = os.getenv('DATABASE_URL')
 if DATABASE_URL:
     import urllib.parse as urlparse
+    if DATABASE_URL.startswith("postgres://"):
+        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
     url = urlparse.urlparse(DATABASE_URL)
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
-            'NAME': url.path[1:],
-            'USER': url.username,
-            'PASSWORD': url.password,
+            'NAME': urlparse.unquote(url.path[1:]),
+            'USER': urlparse.unquote(url.username or ''),
+            'PASSWORD': urlparse.unquote(url.password or ''),
             'HOST': url.hostname,
-            'PORT': url.port,
+            'PORT': url.port or 5432,
         }
     }
 else:
@@ -144,9 +147,12 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = '/static/'
-# Static files
 STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
+
+# Render Reverse Proxy SSL Header
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # Channels (WebSocket)
 ASGI_APPLICATION = 'core.asgi.application'
@@ -167,15 +173,18 @@ else:
             'BACKEND': 'channels.layers.InMemoryChannelLayer',
         },
     }
+
 AUTH_USER_MODEL = 'accounts.User'
+
 CSRF_TRUSTED_ORIGINS = [
+    'https://*.onrender.com',
     'https://*.ngrok-free.app',
     'https://*.ngrok-free.dev',
 ]
 
 env_csrf_origins = os.getenv('CSRF_TRUSTED_ORIGINS')
 if env_csrf_origins:
-    CSRF_TRUSTED_ORIGINS.extend([o.strip() for o in env_csrf_origins.split(',')])
+    CSRF_TRUSTED_ORIGINS.extend([o.strip() for o in env_csrf_origins.split(',') if o.strip()])
 else:
     ngrok_url = os.getenv('NGROK_URL')
     if ngrok_url:
